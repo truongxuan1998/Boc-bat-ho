@@ -20,16 +20,13 @@ import { subscribeToRealtimeChanges } from '@/lib/supabaseClient';
 import { HeaderNav } from '@/components/HeaderNav';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { HuiTab } from '@/components/HuiTab';
-import { BatHoTab } from '@/components/BatHoTab';
 import { CalculatorTab } from '@/components/CalculatorTab';
 import { ZaloExportModal } from '@/components/ZaloExportModal';
-import { SupabaseConfigModal } from '@/components/SupabaseConfigModal';
 
 export default function Home() {
   const [data, setData] = useState<SystemData>(emptySystemData);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
-  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   // Hàm tải dữ liệu Cloud
@@ -57,7 +54,7 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
-      if (tabParam && ['overview', 'hui', 'batho', 'calc'].includes(tabParam)) {
+      if (tabParam && ['overview', 'hui', 'calc'].includes(tabParam)) {
         setActiveTab(tabParam);
       }
     }
@@ -134,7 +131,6 @@ export default function Home() {
             {/* Header Navigation */}
             <HeaderNav
               onOpenZaloModal={() => setIsZaloModalOpen(true)}
-              onOpenCloudModal={() => setIsCloudModalOpen(true)}
               onResetData={handleResetData}
               onExportJson={handleExportJson}
             />
@@ -154,11 +150,7 @@ export default function Home() {
                   />
                   <SegmentedControlItem
                     value="hui"
-                    label="🤝 Hụi / Họ Xoay Vòng"
-                  />
-                  <SegmentedControlItem
-                    value="batho"
-                    label="📝 Bát Họ Ngày (10 Ăn 8)"
+                    label="🤝 Quản Lý Dây Hụi"
                   />
                   <SegmentedControlItem
                     value="calc"
@@ -180,12 +172,6 @@ export default function Home() {
                 onUpdateHuiGroups={handleUpdateHuiGroups}
               />
             )}
-            {activeTab === 'batho' && (
-              <BatHoTab
-                batHoLoans={data.batHoLoans}
-                onUpdateBatHoLoans={handleUpdateBatHoLoans}
-              />
-            )}
             {activeTab === 'calc' && <CalculatorTab />}
 
             {/* Modal Xuất Báo Cáo Zalo */}
@@ -193,13 +179,6 @@ export default function Home() {
               isOpen={isZaloModalOpen}
               onOpenChange={setIsZaloModalOpen}
               data={data}
-            />
-
-            {/* Modal Cấu Hình Supabase Cloud */}
-            <SupabaseConfigModal
-              isOpen={isCloudModalOpen}
-              onOpenChange={setIsCloudModalOpen}
-              onConfigSaved={refreshCloudData}
             />
           </VStack>
         </LayoutContent>

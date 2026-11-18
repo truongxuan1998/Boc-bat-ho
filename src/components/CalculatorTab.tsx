@@ -41,39 +41,26 @@ export function CalculatorTab() {
   const lastWinnerTotalPaid = (slotsCount - 1) * (slotAmount - bidAvg);
   const lastWinnerNetProfit = lastWinnerReceive - lastWinnerTotalPaid;
 
-  // 2. State Dự Toán Bát Họ Ngày
-  const [batHoTotal, setBatHoTotal] = useState('10000000');
-  const [batHoReceived, setBatHoReceived] = useState('8000000');
-  const [batHoDays, setBatHoDays] = useState('50');
-
-  const bTotal = parseInt(batHoTotal.replace(/\D/g, ''), 10) || 10000000;
-  const bReceived = parseInt(batHoReceived.replace(/\D/g, ''), 10) || 8000000;
-  const bDays = parseInt(batHoDays, 10) || 50;
-
-  const cutFee = Math.max(0, bTotal - bReceived);
-  const dailyPay = bDays > 0 ? Math.round(bTotal / bDays) : 0;
-  const profitRate = bReceived > 0 ? ((cutFee / bReceived) * 100).toFixed(1) : '0';
-
   return (
     <VStack gap={6}>
       <Card>
         <HStack gap={3} vAlign="center">
           <Icon icon={CalculatorIcon} size="lg" />
           <VStack gap={0}>
-            <Heading level={3}>Máy Tính Dự Toán Hụi & Bát Họ Nhanh</Heading>
+            <Heading level={3}>Máy Tính Dự Toán Hụi / Họ Xoay Vòng</Heading>
             <Text type="supporting" color="secondary">
-              Công cụ tính nhẩm dòng tiền, tỉ suất lợi nhuận và chi phí trước khi vào dây hoặc cho bốc bát họ
+              Công cụ tính nhẩm dòng tiền, tỉ suất sinh lời người hốt chót và chi phí người hốt đầu trước khi vào dây hụi
             </Text>
           </VStack>
         </HStack>
       </Card>
 
-      {/* DỰ TOÁN 1: HỤI / HỌ XOAY VÒNG */}
+      {/* DỰ TOÁN HỤI / HỌ XOAY VÒNG */}
       <Card>
         <VStack gap={4}>
           <HStack gap={2} vAlign="center">
             <Icon icon={SparklesIcon} size="md" />
-            <Heading level={4}>1. Dự Toán Hụi / Họ Xoay Vòng</Heading>
+            <Heading level={4}>Thông Số Dây Hụi Dự Kiến</Heading>
           </HStack>
 
           <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
@@ -143,7 +130,7 @@ export function CalculatorTab() {
               <VStack gap={1}>
                 <HStack gap={2} vAlign="center">
                   <Text type="supporting" color="secondary">
-                    Người Hốt Đầu (Kỳ 1 - Vay Tiền)
+                    Người Hốt Đầu (Kỳ 1 - Cần Vốn)
                   </Text>
                   <Badge label="Chịu Lãi" variant="warning" />
                 </HStack>
@@ -154,71 +141,6 @@ export function CalculatorTab() {
                   Lĩnh {formatCurrency(firstWinnerReceive)} ➔ Phải đóng{' '}
                   {formatCurrency(firstWinnerTotalPaid)}
                 </Text>
-              </VStack>
-            </Card>
-          </Grid>
-        </VStack>
-      </Card>
-
-      {/* DỰ TOÁN 2: BÁT HỌ NGÀY (10 ĂN 8) */}
-      <Card>
-        <VStack gap={4}>
-          <HStack gap={2} vAlign="center">
-            <Icon icon={SparklesIcon} size="md" />
-            <Heading level={4}>2. Dự Toán Bát Họ Ngày (Vay Góp Dân Gian)</Heading>
-          </HStack>
-
-          <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
-            <TextInput
-              label="Số Tiền Bát Họ (VNĐ)"
-              value={batHoTotal}
-              onChange={setBatHoTotal}
-              placeholder="10000000"
-            />
-            <TextInput
-              label="Tiền Cầm Về (VNĐ)"
-              value={batHoReceived}
-              onChange={setBatHoReceived}
-              placeholder="8000000"
-            />
-            <TextInput
-              label="Thời Gian Góp (Ngày)"
-              value={batHoDays}
-              onChange={setBatHoDays}
-              placeholder="50"
-            />
-          </Grid>
-
-          <Divider />
-
-          <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4}>
-            <Card variant="muted">
-              <VStack gap={1}>
-                <Text type="supporting" color="secondary">
-                  Tiền Cắt Phế Ngay Tại Chỗ
-                </Text>
-                <Heading level={4}>{formatCurrency(cutFee)}</Heading>
-                <Text type="supporting">Thu nhập cầm chắc khi giao tiền</Text>
-              </VStack>
-            </Card>
-
-            <Card variant="muted">
-              <VStack gap={1}>
-                <Text type="supporting" color="secondary">
-                  Số Tiền Khách Đóng Mỗi Ngày
-                </Text>
-                <Heading level={4}>{formatCurrency(dailyPay)} / ngày</Heading>
-                <Text type="supporting">Đóng đều trong {bDays} ngày</Text>
-              </VStack>
-            </Card>
-
-            <Card variant="muted">
-              <VStack gap={1}>
-                <Text type="supporting" color="secondary">
-                  Tỉ Suất Sinh Lời (Trong {bDays} ngày)
-                </Text>
-                <Heading level={4}>{profitRate}%</Heading>
-                <Text type="supporting">Lãi tính trên số tiền vốn bỏ ra</Text>
               </VStack>
             </Card>
           </Grid>

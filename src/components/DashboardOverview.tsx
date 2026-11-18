@@ -25,7 +25,6 @@ import {
 } from 'recharts';
 import { SystemData } from '@/types';
 import { formatCurrency } from '@/lib/huiCalculator';
-import { calculateBatHoStats } from '@/lib/batHoCalculator';
 
 interface DashboardOverviewProps {
   data: SystemData;
@@ -37,6 +36,7 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
   let totalHuiCommission = 0;
   let totalHuiCollected = 0;
   let totalHuiDebt = 0;
+  let totalUnpaidSlots = 0;
 
   for (const hui of data.huiGroups) {
     totalHuiFund += hui.amountPerSlot * hui.totalSlots;
@@ -47,52 +47,46 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
           totalHuiCollected += p.amountToPay;
         } else {
           totalHuiDebt += p.amountToPay;
+          totalUnpaidSlots++;
         }
       }
     }
   }
 
-  // 2. Tính toán thống kê Bát Họ
-  let totalBatHoFund = 0;
-  let totalBatHoFee = 0;
-  let totalBatHoCollected = 0;
-  let totalBatHoDebt = 0;
-  let overdueCount = 0;
-
-  for (const loan of data.batHoLoans) {
-    totalBatHoFund += loan.totalAmount;
-    totalBatHoFee += loan.cutFee;
-    const stats = calculateBatHoStats(loan);
-    totalBatHoCollected += stats.paidAmount;
-    totalBatHoDebt += stats.remainingAmount;
-    if (stats.isOverdue) {
-      overdueCount++;
-    }
-  }
-
-  // Tổng cộng toàn hệ thống
-  const grandTotalFund = totalHuiFund + totalBatHoFund;
-  const grandTotalProfit = totalHuiCommission + totalBatHoFee;
-  const grandTotalCollected = totalHuiCollected + totalBatHoCollected;
-  const grandTotalDebt = totalHuiDebt + totalBatHoDebt;
-
-  // Dữ liệu biểu đồ so sánh dòng tiền
-  const chartData = [
-    {
-      category: 'Hụi / Họ Xoay Vòng',
-      'Tổng Vốn': Math.round(totalHuiFund / 1000000),
-      'Đã Thu': Math.round(totalHuiCollected / 1000000),
-      'Còn Nợ': Math.round(totalHuiDebt / 1000000),
-      'Lợi Nhuận / Xâu': Math.round(totalHuiCommission / 1000000),
-    },
-    {
-      category: 'Bát Họ Ngày',
-      'Tổng Vốn': Math.round(totalBatHoFund / 1000000),
-      'Đã Thu': Math.round(totalBatHoCollected / 1000000),
-      'Còn Nợ': Math.round(totalBatHoDebt / 1000000),
-      'Lợi Nhuận / Xâu': Math.round(totalBatHoFee / 1000000),
-    },
-  ];
+  // Dữ liệu biểu đồ phân tích theo từng dây hụi
+  const chartData =
+    data.huiGroups.length > 0
+      ? data.huiGroups.map((g) => {
+          let col = 0;
+          let debt = 0;
+          let fee = 0;
+          for (const period of g.periods || []) {
+            fee += period.commissionFee;
+            for (const p of period.payments) {
+              if (p.isPaid) {
+                col += p.amountToPay;
+              } else {
+                debt += p.amountToPay;
+              }
+            }
+          }
+          return {
+            category: g.name,
+            'Tổng Vốn Dây': Math.round((g.amountPerSlot * g.totalSlots) / 1000000),
+            'Đã Thu': Math.round(col / 1000000),
+            'Còn Nợ': Math.round(debt / 1000000),
+            'Tiền Xâu': Math.round(fee / 1000000),
+          };
+        })
+      : [
+          {
+            category: 'Chưa có dây hụi',
+            'Tổng Vốn Dây': 0,
+            'Đã Thu': 0,
+            'Còn Nợ': 0,
+            'Tiền Xâu': 0,
+          },
+        ];
 
   return (
     <VStack gap={6}>
@@ -102,13 +96,13 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
           <VStack gap={2}>
             <HStack hAlign="between" vAlign="center">
               <Text type="supporting" color="secondary">
-                Tổng Vốn Lưu Hành
+                Tổng Vốn Các Dây Hụi
               </Text>
               <Icon icon={CurrencyDollarIcon} size="md" />
             </HStack>
-            <Heading level={3}>{formatCurrency(grandTotalFund)}</Heading>
+            <Heading level={3}>{formatCurrency(totalHuiFund)}</Heading>
             <Text type="supporting">
-              {data.huiGroups.length} dây hụi + {data.batHoLoans.length} bát họ
+              {data.huiGroups.length} dây hụi đang hoạt động
             </Text>
           </VStack>
         </Card>
@@ -117,14 +111,13 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
           <VStack gap={2}>
             <HStack hAlign="between" vAlign="center">
               <Text type="supporting" color="secondary">
-                Lợi Nhuận Ròng & Tiền Xâu
+                Tiền Xâu Thu Được (Chủ Hụi)
               </Text>
               <Icon icon={SparklesIcon} size="md" />
             </HStack>
-            <Heading level={3}>{formatCurrency(grandTotalProfit)}</Heading>
+            <Heading level={3}>{formatCurrency(totalHuiCommission)}</Heading>
             <Text type="supporting">
-              Xâu hụi: {formatCurrency(totalHuiCommission)} | Cắt phế:{' '}
-              {formatCurrency(totalBatHoFee)}
+              Lợi nhuận trích từ các kỳ hụi đã khui
             </Text>
           </VStack>
         </Card>
@@ -137,8 +130,8 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
               </Text>
               <Icon icon={CheckCircleIcon} size="md" />
             </HStack>
-            <Heading level={3}>{formatCurrency(grandTotalCollected)}</Heading>
-            <Text type="supporting">Tiền tươi đã về tài khoản / két</Text>
+            <Heading level={3}>{formatCurrency(totalHuiCollected)}</Heading>
+            <Text type="supporting">Các chân hụi đã đóng hoàn tất</Text>
           </VStack>
         </Card>
 
@@ -150,13 +143,13 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
               </Text>
               <Icon icon={ExclamationCircleIcon} size="md" />
             </HStack>
-            <Heading level={3}>{formatCurrency(grandTotalDebt)}</Heading>
+            <Heading level={3}>{formatCurrency(totalHuiDebt)}</Heading>
             <HStack gap={2} vAlign="center">
               <Text type="supporting">
                 Cần đôn đốc nhắc nhở
               </Text>
-              {overdueCount > 0 && (
-                <Badge label={`${overdueCount} bát chậm`} variant="error" />
+              {totalUnpaidSlots > 0 && (
+                <Badge label={`${totalUnpaidSlots} chân chưa đóng`} variant="warning" />
               )}
             </HStack>
           </VStack>
@@ -168,9 +161,9 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
         <VStack gap={4}>
           <HStack hAlign="between" vAlign="center" wrap="wrap">
             <VStack gap={1}>
-              <Heading level={4}>Thống Kê So Sánh Dòng Tiền (Triệu VNĐ)</Heading>
+              <Heading level={4}>Thống Kê Dòng Tiền Dây Hụi (Triệu VNĐ)</Heading>
               <Text type="supporting" color="secondary">
-                Biểu đồ phân bổ nguồn vốn, số tiền đã thu hồi, dư nợ và lợi nhuận ròng
+                Biểu đồ phân bổ nguồn vốn, số tiền đã thu hồi, dư nợ và tiền xâu theo từng dây hụi
               </Text>
             </VStack>
           </HStack>
@@ -185,10 +178,10 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
               <YAxis unit="tr" />
               <Tooltip formatter={(value) => [`${value} Triệu VNĐ`]} />
               <Legend />
-              <Bar dataKey="Tổng Vốn" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Tổng Vốn Dây" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Đã Thu" fill="#10b981" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Còn Nợ" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Lợi Nhuận / Xâu" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Tiền Xâu" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </VStack>

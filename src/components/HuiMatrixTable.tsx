@@ -10,9 +10,9 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Grid } from '@astryxdesign/core/Grid';
 import {
   TableCellsIcon,
-  CheckBadgeIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { ProgressiveHuiMatrix, ProgressiveHuiMemberRow } from '@/types';
 
@@ -20,6 +20,13 @@ interface HuiMatrixTableProps {
   matrix: ProgressiveHuiMatrix;
   title?: string;
   subtitle?: string;
+}
+
+function formatMoneyOrStep(val: number): string {
+  if (Math.abs(val) >= 1000) {
+    return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+  }
+  return new Intl.NumberFormat('vi-VN').format(val);
 }
 
 export function HuiMatrixTable({
@@ -53,32 +60,93 @@ export function HuiMatrixTable({
         if (!cell) return <Text color="disabled">—</Text>;
 
         if (cell.type === 'WON') {
+          const received = cell.totalReceived || row.wonAmount;
           return (
-            <Badge
-              label={cell.label}
-              variant="success"
-            />
+            <VStack gap={0} hAlign="center">
+              <Badge
+                label={matrix.basePot > 0 ? formatMoneyOrStep(received) : cell.label}
+                variant="success"
+              />
+              {matrix.basePot > 0 && (
+                <Text type="supporting" color="secondary">
+                  {cell.label}
+                </Text>
+              )}
+            </VStack>
           );
         }
 
         if (cell.type === 'DEAD') {
           return (
-            <Badge
-              label={cell.label}
-              variant="neutral"
-            />
+            <VStack gap={0} hAlign="center">
+              <Badge
+                label={cell.label}
+                variant="neutral"
+              />
+              {matrix.baseAmount > 0 && (
+                <Text type="supporting" color="secondary">
+                  Đóng: {formatMoneyOrStep(cell.totalToPay || 0)}
+                </Text>
+              )}
+            </VStack>
           );
         }
 
         // ALIVE (Chân sống chưa lụm - ô đen)
         return (
-          <Text type="supporting" color="disabled">
-            —
-          </Text>
+          <VStack gap={0} hAlign="center">
+            <Text type="supporting" color="disabled">
+              —
+            </Text>
+            {matrix.baseAmount > 0 && (
+              <Text type="supporting" color="secondary">
+                Đóng: {formatMoneyOrStep(matrix.baseAmount)}
+              </Text>
+            )}
+          </VStack>
         );
       },
     });
   });
+
+  // Cột Số Tiền Lụm (Nhận Được)
+  if (matrix.basePot > 0) {
+    columns.push({
+      key: 'wonAmount',
+      header: 'TIỀN LỤM (NHẬN ĐƯỢC)',
+      renderCell: (row) => (
+        <VStack gap={0} hAlign="center">
+          <Badge
+            label={formatMoneyOrStep(row.wonAmount)}
+            variant="success"
+          />
+          {row.wonBonus > 0 && (
+            <Text type="supporting" color="secondary">
+              +{formatMoneyOrStep(row.wonBonus)} lãi
+            </Text>
+          )}
+        </VStack>
+      ),
+    });
+
+    // Cột Tổng Tiền Đã Đóng
+    columns.push({
+      key: 'totalPaid',
+      header: 'TỔNG ĐÃ ĐÓNG',
+      renderCell: (row) => (
+        <VStack gap={0} hAlign="center">
+          <Text weight="semibold">
+            {formatMoneyOrStep(row.totalPaid)}
+          </Text>
+          {row.totalInterestPaid > 0 && (
+            <Text type="supporting" color="secondary">
+              +{formatMoneyOrStep(row.totalInterestPaid)} bù
+            </Text>
+          )}
+        </VStack>
+      ),
+    });
+  }
 
   // Cột tổng kết Lãi / Lỗ ròng
   columns.push({
@@ -88,7 +156,7 @@ export function HuiMatrixTable({
       if (row.netProfit > 0) {
         return (
           <Badge
-            label={`+${row.netProfit} (Lời)`}
+            label={`+${formatMoneyOrStep(row.netProfit)} (Lời)`}
             variant="success"
           />
         );
@@ -96,12 +164,12 @@ export function HuiMatrixTable({
       if (row.netProfit < 0) {
         return (
           <Badge
-            label={`${row.netProfit} (Lỗ)`}
+            label={`${formatMoneyOrStep(row.netProfit)} (Lỗ)`}
             variant="error"
           />
         );
       }
-      return <Badge label="0" variant="neutral" />;
+      return <Badge label="0 đ (Hòa)" variant="neutral" />;
     },
   });
 
@@ -112,24 +180,41 @@ export function HuiMatrixTable({
   return (
     <VStack gap={4}>
       <Card>
-        <VStack gap={3}>
+        <VStack gap={4}>
           <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
             <HStack gap={3} vAlign="center">
               <Icon icon={TableCellsIcon} size="md" />
               <VStack gap={0}>
                 <Heading level={4}>{title}</Heading>
                 <Text type="supporting" color="secondary">
-                  {subtitle} • Bước nhảy lãi: <Text weight="semibold">Δ = {matrix.interestStep}</Text>
+                  {subtitle} • Bước nhảy lãi: <Text weight="semibold">Δ = {formatMoneyOrStep(matrix.interestStep)}</Text>
                 </Text>
               </VStack>
             </HStack>
 
-            <HStack gap={2} vAlign="center">
-              <Badge label="Ô Xanh: LỤM Tiền" variant="success" />
+            <HStack gap={2} vAlign="center" wrap="wrap">
+              <Badge label="Ô Xanh: Số Tiền Nhận Được" variant="success" />
               <Badge label="Ô Xám: Sau Lụm (-bù)" variant="neutral" />
               <Badge label="Ô Trống: Chân Sống" variant="neutral" />
             </HStack>
           </HStack>
+
+          {matrix.basePot > 0 && (
+            <HStack gap={2} vAlign="center" wrap="wrap">
+              <Badge
+                label={`Tiền đóng mỗi chân: ${formatMoneyOrStep(matrix.baseAmount)}`}
+                variant="info"
+              />
+              <Badge
+                label={`Tiền LỤM gốc: (${matrix.totalMembers} - 1) × ${formatMoneyOrStep(matrix.baseAmount)} = ${formatMoneyOrStep(matrix.basePot)}`}
+                variant="success"
+              />
+              <Badge
+                label={`Bước nhảy lãi: Δ = ${formatMoneyOrStep(matrix.interestStep)}`}
+                variant="warning"
+              />
+            </HStack>
+          )}
 
           {/* Bảng Ma Trận Dữ Liệu */}
           <Table<ProgressiveHuiMemberRow>
@@ -156,11 +241,11 @@ export function HuiMatrixTable({
             <HStack gap={2} vAlign="center">
               <Heading level={3}>{firstWinner ? firstWinner.memberName : '—'}</Heading>
               {firstWinner && (
-                <Badge label={`${firstWinner.netProfit} (Chịu Lãi)`} variant="error" />
+                <Badge label={`${formatMoneyOrStep(firstWinner.netProfit)} (Chịu Lãi)`} variant="error" />
               )}
             </HStack>
             <Text type="supporting">
-              Lấy tiền tươi kỳ đầu để kinh doanh / xoay sở vốn, đóng bù dần qua các kỳ sau
+              Lấy tiền tươi kỳ đầu để kinh doanh / xoay sở vốn ({firstWinner ? formatMoneyOrStep(firstWinner.wonAmount) : ''}), đóng bù dần qua các kỳ sau
             </Text>
           </VStack>
         </Card>
@@ -176,11 +261,11 @@ export function HuiMatrixTable({
             <HStack gap={2} vAlign="center">
               <Heading level={3}>{lastWinner ? lastWinner.memberName : '—'}</Heading>
               {lastWinner && (
-                <Badge label={`+${lastWinner.netProfit} (Lời Ròng)`} variant="success" />
+                <Badge label={`+${formatMoneyOrStep(lastWinner.netProfit)} (Lời Ròng)`} variant="success" />
               )}
             </HStack>
             <Text type="supporting">
-              Gửi tiết kiệm trọn gói cả dây, nhận toàn bộ lãi lũy tiến từ các chân chết trước
+              Gửi tiết kiệm trọn gói cả dây, nhận toàn bộ lãi lũy tiến từ các chân chết trước ({lastWinner ? formatMoneyOrStep(lastWinner.wonAmount) : ''})
             </Text>
           </VStack>
         </Card>

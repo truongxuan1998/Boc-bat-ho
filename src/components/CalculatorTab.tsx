@@ -13,15 +13,22 @@ import {
   CalculatorIcon,
   SparklesIcon,
   InformationCircleIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { generateProgressiveMatrix } from '@/lib/huiCalculator';
 import { HuiMatrixTable } from '@/components/HuiMatrixTable';
 
+function formatMoney(val: number): string {
+  return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+}
+
 export function CalculatorTab() {
   // 1. State cấu hình mô phỏng Ma Trận Lũy Tiến
-  const [membersInput, setMembersInput] = useState('KM, BẢO, CƯỜNG, TRUNG, XUÂN, BÌNH');
+  // Mặc định 5 người chơi và đóng 3.000.000 đ như ví dụ người dùng
+  const [membersInput, setMembersInput] = useState('KM, BẢO, CƯỜNG, TRUNG, XUÂN');
+  const [amountPerSlotInput, setAmountPerSlotInput] = useState('3000000');
+  const [interestStepInput, setInterestStepInput] = useState('30000');
   const [startMonthInput, setStartMonthInput] = useState('4');
-  const [interestStepInput, setInterestStepInput] = useState('30');
 
   // Tính toán ma trận lũy tiến theo công thức người dùng
   const matrix = useMemo(() => {
@@ -29,12 +36,13 @@ export function CalculatorTab() {
       .split(',')
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
-    const members = rawNames.length > 0 ? rawNames : ['KM', 'BẢO', 'CƯỜNG', 'TRUNG', 'XUÂN', 'BÌNH'];
+    const members = rawNames.length > 0 ? rawNames : ['KM', 'BẢO', 'CƯỜNG', 'TRUNG', 'XUÂN'];
     const startMonth = parseInt(startMonthInput, 10) || 4;
-    const step = parseInt(interestStepInput.replace(/\D/g, ''), 10) || 30;
+    const step = parseInt(interestStepInput.replace(/\D/g, ''), 10) || 30000;
+    const amountPerSlot = parseInt(amountPerSlotInput.replace(/\D/g, ''), 10) || 3000000;
 
-    return generateProgressiveMatrix(members, startMonth, step);
-  }, [membersInput, startMonthInput, interestStepInput]);
+    return generateProgressiveMatrix(members, startMonth, step, amountPerSlot);
+  }, [membersInput, amountPerSlotInput, startMonthInput, interestStepInput]);
 
   return (
     <VStack gap={6}>
@@ -44,7 +52,7 @@ export function CalculatorTab() {
           <VStack gap={0}>
             <Heading level={3}>Máy Tính Dự Toán Hụi Lũy Tiến Bậc Thang</Heading>
             <Text type="supporting" color="secondary">
-              Mô phỏng chính xác ma trận dòng tiền, kỳ LỤM tiền tươi, các kỳ đóng bù sau khi lụm và tổng kết Lãi/Lỗ ròng
+              Mô phỏng chính xác số tiền nhận được tháng LỤM (Gốc + Lãi), các kỳ đóng bù sau lụm và tổng kết Lãi/Lỗ ròng
             </Text>
           </VStack>
         </HStack>
@@ -63,7 +71,19 @@ export function CalculatorTab() {
               label="Danh Sách Thành Viên (Theo Thứ Tự LỤM)"
               value={membersInput}
               onChange={setMembersInput}
-              placeholder="KM, BẢO, CƯỜNG, TRUNG, XUÂN, BÌNH"
+              placeholder="KM, BẢO, CƯỜNG, TRUNG, XUÂN"
+            />
+            <TextInput
+              label="Tiền Đóng Hụi Mỗi Chân (VNĐ)"
+              value={amountPerSlotInput}
+              onChange={setAmountPerSlotInput}
+              placeholder="3000000"
+            />
+            <TextInput
+              label="Bước Nhảy Lãi Lũy Tiến Δ (VNĐ)"
+              value={interestStepInput}
+              onChange={setInterestStepInput}
+              placeholder="30000"
             />
             <TextInput
               label="Tháng Bắt Đầu (1 - 12)"
@@ -71,22 +91,30 @@ export function CalculatorTab() {
               onChange={setStartMonthInput}
               placeholder="4"
             />
-            <TextInput
-              label="Bước Nhảy Lãi Lũy Tiến (Δ)"
-              value={interestStepInput}
-              onChange={setInterestStepInput}
-              placeholder="30"
-            />
           </Grid>
 
           <Divider />
 
-          <HStack gap={2} vAlign="center" wrap="wrap">
-            <Icon icon={InformationCircleIcon} size="sm" />
-            <Text type="supporting" color="secondary">
-              Công thức người lụm kỳ t: <Text weight="semibold">LỤM + [ (t - 1) × t / 2 ] × Δ</Text> • Người đã lụm đóng bù: <Text weight="semibold">-(t - k) × Δ</Text>
-            </Text>
-          </HStack>
+          {/* HỘP GIẢI THÍCH VÍ DỤ RÕ RÀNG */}
+          <Card variant="muted">
+            <HStack gap={3} vAlign="center">
+              <Icon icon={BanknotesIcon} size="md" />
+              <VStack gap={1}>
+                <Heading level={4}>
+                  Cơ Chế Tiền Nhận Khi LỤM ({matrix.totalMembers} người chơi • Đóng {formatMoney(matrix.baseAmount)}/chân)
+                </Heading>
+                <Text type="supporting" color="secondary">
+                  • <Text weight="semibold">Tiền LỤM gốc nhận được:</Text> ({matrix.totalMembers} - 1) người đóng × {formatMoney(matrix.baseAmount)} = <Badge label={formatMoney(matrix.basePot)} variant="success" />
+                </Text>
+                <Text type="supporting" color="secondary">
+                  • <Text weight="semibold">Tháng người nào LỤM sẽ nhận:</Text> {formatMoney(matrix.basePot)} + Tiền Lãi Lũy Tiến
+                </Text>
+                <Text type="supporting" color="secondary">
+                  (Ví dụ: Kỳ 1 nhận <Text weight="semibold">{formatMoney(matrix.basePot)}</Text>, Kỳ 2 nhận <Text weight="semibold">{formatMoney(matrix.basePot + matrix.interestStep)}</Text>, Kỳ 3 nhận <Text weight="semibold">{formatMoney(matrix.basePot + 3 * matrix.interestStep)}</Text>...)
+                </Text>
+              </VStack>
+            </HStack>
+          </Card>
         </VStack>
       </Card>
 

@@ -89,14 +89,21 @@ export function calculateNewHuiPeriod(
 
 /**
  * Sinh ma trận tính hụi lũy tiến bậc thang chuẩn 100% theo logic bảng tính Excel
+ * @param members Danh sách tên các thành viên (theo thứ tự lụm)
+ * @param startMonth Tháng bắt đầu khui (1 - 12)
+ * @param interestStep Bước nhảy lãi lũy tiến Δ (Vd: 30.000 đ hoặc 30)
+ * @param amountPerSlot Tiền đóng hụi mỗi chân (Vd: 3.000.000 đ). Người lụm sẽ nhận (N-1) * amountPerSlot + lãi
  */
 export function generateProgressiveMatrix(
   members: string[],
   startMonth: number = 4,
-  interestStep: number = 30,
-  basePot: number = 0
+  interestStep: number = 30000,
+  amountPerSlot: number = 3000000
 ): ProgressiveHuiMatrix {
   const totalMembers = members.length;
+  // Số tiền LỤM gốc nhận được từ các thành viên khác: (N - 1) * amountPerSlot
+  const basePot = Math.max(0, (totalMembers - 1) * amountPerSlot);
+
   const months: string[] = [];
   for (let i = 0; i < totalMembers; i++) {
     const m = ((startMonth - 1 + i) % 12) + 1;
@@ -106,8 +113,9 @@ export function generateProgressiveMatrix(
   const rows: ProgressiveHuiMemberRow[] = members.map((name, memberIndex) => {
     const turnIndex = memberIndex + 1; // 1-based index (kỳ người này lụm)
     const cells: ProgressiveHuiCell[] = [];
-    let wonAmount = 0;
+    let wonBonus = 0;
     let totalInterestPaid = 0;
+    let totalPaid = 0;
 
     for (let monthIdx = 0; monthIdx < totalMembers; monthIdx++) {
       const currentPeriod = monthIdx + 1;
@@ -115,19 +123,22 @@ export function generateProgressiveMatrix(
 
       if (currentPeriod < turnIndex) {
         // Chưa tới lượt lụm (Chân sống - ô màu đen)
+        // Đóng đúng tiền gốc cơ bản mỗi tháng
+        totalPaid += amountPerSlot;
         cells.push({
           monthIndex: monthIdx,
           monthName,
           type: 'ALIVE',
           label: '—',
           interestAmount: 0,
-          amountToPayOrReceive: basePot > 0 ? basePot : 0,
+          amountToPayOrReceive: amountPerSlot,
+          totalToPay: amountPerSlot,
         });
       } else if (currentPeriod === turnIndex) {
         // Đúng kỳ lụm (Ô màu xanh lá)
         // Tiền lãi nhận thêm = tổng (i * interestStep) từ 1 đến turnIndex-1
-        const wonBonus = ((turnIndex - 1) * turnIndex) / 2 * interestStep;
-        wonAmount = wonBonus;
+        wonBonus = ((turnIndex - 1) * turnIndex) / 2 * interestStep;
+        const totalReceived = basePot + wonBonus;
         const label = wonBonus > 0 ? `LỤM+${wonBonus}` : 'LỤM';
         cells.push({
           monthIndex: monthIdx,
@@ -135,26 +146,31 @@ export function generateProgressiveMatrix(
           type: 'WON',
           label,
           interestAmount: wonBonus,
-          amountToPayOrReceive: basePot > 0 ? basePot + wonBonus : wonBonus,
+          amountToPayOrReceive: totalReceived,
+          totalReceived,
         });
       } else {
         // Đã lụm ở kỳ trước (Chân chết - ô màu xám)
         // Đóng thêm tiền lãi = (currentPeriod - turnIndex) * interestStep
         const stepCount = currentPeriod - turnIndex;
         const extraInterest = stepCount * interestStep;
+        const toPay = amountPerSlot + extraInterest;
         totalInterestPaid += extraInterest;
+        totalPaid += toPay;
         cells.push({
           monthIndex: monthIdx,
           monthName,
           type: 'DEAD',
           label: `-${extraInterest}`,
           interestAmount: -extraInterest,
-          amountToPayOrReceive: basePot > 0 ? basePot + extraInterest : extraInterest,
+          amountToPayOrReceive: toPay,
+          totalToPay: toPay,
         });
       }
     }
 
-    const netProfit = wonAmount - totalInterestPaid;
+    const wonAmount = basePot + wonBonus;
+    const netProfit = wonBonus - totalInterestPaid;
 
     return {
       memberId: `mem_${turnIndex}`,
@@ -162,7 +178,9 @@ export function generateProgressiveMatrix(
       turnIndex,
       cells,
       wonAmount,
+      wonBonus,
       totalInterestPaid,
+      totalPaid,
       netProfit,
     };
   });
@@ -171,7 +189,8 @@ export function generateProgressiveMatrix(
     months,
     members: rows,
     interestStep,
-    baseAmount: basePot,
+    baseAmount: amountPerSlot,
+    basePot,
     totalMembers,
   };
 }

@@ -77,10 +77,11 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   const huiMatrix = useMemo(() => {
     if (!currentHui) return null;
     const names = currentHui.slots.map((s) => s.memberName);
+    const step = currentHui.interestStep !== undefined ? currentHui.interestStep : 30000;
     return generateProgressiveMatrix(
       names,
       currentHui.startMonth || 4,
-      currentHui.interestStep || 30,
+      step,
       currentHui.amountPerSlot
     );
   }, [currentHui]);

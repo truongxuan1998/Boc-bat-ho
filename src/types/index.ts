@@ -54,6 +54,8 @@ export interface ProgressiveHuiCell extends Record<string, unknown> {
   label: string; // "LỤM", "LỤM+30", "-30", "—"
   interestAmount: number; // +30, -60, 0
   amountToPayOrReceive: number; // Số tiền cụ thể
+  totalReceived?: number; // Số tiền thực nhận tháng LỤM = basePot + interestAmount
+  totalToPay?: number; // Số tiền thực đóng = amountPerSlot + extraInterest
   isPaid?: boolean;
   [key: string]: unknown;
 }
@@ -63,8 +65,10 @@ export interface ProgressiveHuiMemberRow extends Record<string, unknown> {
   memberName: string;
   turnIndex: number; // 1-based (Kỳ người đó được lụm)
   cells: ProgressiveHuiCell[];
-  wonAmount: number; // Tiền nhận khi LỤM
+  wonAmount: number; // Tổng số tiền nhận được tháng LỤM = basePot + wonBonus
+  wonBonus: number; // Tiền lãi lũy tiến nhận thêm
   totalInterestPaid: number; // Tổng lãi đã trả sau khi lụm
+  totalPaid: number; // Tổng tiền đã đóng cả dây
   netProfit: number; // Lãi/Lỗ ròng
   [key: string]: unknown;
 }
@@ -73,7 +77,8 @@ export interface ProgressiveHuiMatrix extends Record<string, unknown> {
   months: string[];
   members: ProgressiveHuiMemberRow[];
   interestStep: number;
-  baseAmount: number;
+  baseAmount: number; // Tiền đóng mỗi chân (amountPerSlot)
+  basePot: number; // Tiền LỤM gốc = (totalMembers - 1) * amountPerSlot
   totalMembers: number;
   [key: string]: unknown;
 }

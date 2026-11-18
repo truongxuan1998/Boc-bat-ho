@@ -59,6 +59,47 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   const currentHui =
     huiGroups.find((h) => h.id === selectedHuiId) || huiGroups[0];
 
+  // Tạo dây hụi mới
+  const handleCreateHuiGroup = () => {
+    if (!newHuiName.trim()) {
+      alert('Vui lòng nhập tên dây hụi');
+      return;
+    }
+    const amount = parseInt(newHuiAmount.replace(/\D/g, ''), 10) || 2000000;
+    const slotsCount = parseInt(newHuiSlotsCount, 10) || 10;
+    const commission = parseInt(newHuiCommission.replace(/\D/g, ''), 10) || 200000;
+
+    const newId = 'hui_' + Date.now();
+    const slots = [];
+    for (let i = 1; i <= slotsCount; i++) {
+      slots.push({
+        id: `slot_${newId}_${i}`,
+        huiId: newId,
+        slotNumber: i,
+        memberName: i === 1 ? 'Chủ Hụi (Chân 1)' : `Hụi viên chân ${i}`,
+        isDead: false,
+      });
+    }
+
+    const newGroup: HuiGroup = {
+      id: newId,
+      name: newHuiName,
+      amountPerSlot: amount,
+      totalSlots: slotsCount,
+      cycle: newHuiCycle,
+      commissionPerPeriod: commission,
+      startDate: new Date().toISOString().split('T')[0],
+      status: 'ACTIVE',
+      slots,
+      periods: [],
+    };
+
+    onUpdateHuiGroups([...huiGroups, newGroup]);
+    setSelectedHuiId(newId);
+    setIsCreateDialogOpen(false);
+    setNewHuiName('');
+  };
+
   // Dialog tạo dây hụi tái sử dụng
   const renderCreateDialog = () => (
     <Dialog
@@ -243,47 +284,6 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       h.id === currentHui.id ? updatedHui : h
     );
     onUpdateHuiGroups(newHuiGroups);
-  };
-
-  // Tạo dây hụi mới
-  const handleCreateHuiGroup = () => {
-    if (!newHuiName.trim()) {
-      alert('Vui lòng nhập tên dây hụi');
-      return;
-    }
-    const amount = parseInt(newHuiAmount.replace(/\D/g, ''), 10) || 2000000;
-    const slotsCount = parseInt(newHuiSlotsCount, 10) || 10;
-    const commission = parseInt(newHuiCommission.replace(/\D/g, ''), 10) || 200000;
-
-    const newId = 'hui_' + Date.now();
-    const slots = [];
-    for (let i = 1; i <= slotsCount; i++) {
-      slots.push({
-        id: `slot_${newId}_${i}`,
-        huiId: newId,
-        slotNumber: i,
-        memberName: i === 1 ? 'Chủ Hụi (Chân 1)' : `Hụi viên chân ${i}`,
-        isDead: false,
-      });
-    }
-
-    const newGroup: HuiGroup = {
-      id: newId,
-      name: newHuiName,
-      amountPerSlot: amount,
-      totalSlots: slotsCount,
-      cycle: newHuiCycle,
-      commissionPerPeriod: commission,
-      startDate: new Date().toISOString().split('T')[0],
-      status: 'ACTIVE',
-      slots,
-      periods: [],
-    };
-
-    onUpdateHuiGroups([...huiGroups, newGroup]);
-    setSelectedHuiId(newId);
-    setIsCreateDialogOpen(false);
-    setNewHuiName('');
   };
 
   // Cấu hình cột Table thống kê chân hụi

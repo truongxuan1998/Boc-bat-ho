@@ -1,69 +1,176 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Layout, LayoutContent, VStack, HStack } from '@astryxdesign/core/Layout';
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from '@astryxdesign/core/SegmentedControl';
+import { Card } from '@astryxdesign/core/Card';
+import { Text } from '@astryxdesign/core/Text';
+import { SystemData, HuiGroup, BatHoLoan } from '@/types';
+import {
+  loadSystemData,
+  saveSystemData,
+  initialSampleData,
+} from '@/lib/storage';
+import { HeaderNav } from '@/components/HeaderNav';
+import { DashboardOverview } from '@/components/DashboardOverview';
+import { HuiTab } from '@/components/HuiTab';
+import { BatHoTab } from '@/components/BatHoTab';
+import { CalculatorTab } from '@/components/CalculatorTab';
+import { ZaloExportModal } from '@/components/ZaloExportModal';
 
 export default function Home() {
+  const [data, setData] = useState<SystemData>(initialSampleData);
+  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Nạp dữ liệu từ LocalStorage khi render trên Client
+  useEffect(() => {
+    setIsClient(true);
+    const stored = loadSystemData();
+    setData(stored);
+
+    // Đọc URL param ?tab=
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam && ['overview', 'hui', 'batho', 'calc'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', newTab);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  // Lưu dữ liệu mỗi khi state thay đổi
+  const handleUpdateHuiGroups = (groups: HuiGroup[]) => {
+    const updated = { ...data, huiGroups: groups };
+    setData(updated);
+    saveSystemData(updated);
+  };
+
+  const handleUpdateBatHoLoans = (loans: BatHoLoan[]) => {
+    const updated = { ...data, batHoLoans: loans };
+    setData(updated);
+    saveSystemData(updated);
+  };
+
+  // Khôi phục dữ liệu mẫu
+  const handleResetData = () => {
+    if (confirm('Bạn có chắc muốn khôi phục lại dữ liệu mẫu ban đầu?')) {
+      setData(initialSampleData);
+      saveSystemData(initialSampleData);
+    }
+  };
+
+  // Xuất file JSON backup
+  const handleExportJson = () => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `boc_bat_ho_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (!isClient) {
+    return (
+      <Layout
+        height="fill"
+        content={
+          <LayoutContent padding={6}>
+            <VStack gap={4} hAlign="center" vAlign="center" minHeight="50vh">
+              <Text>Đang tải dữ liệu Bốc Bát Họ...</Text>
+            </VStack>
+          </LayoutContent>
+        }
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <Layout
+      height="fill"
+      content={
+        <LayoutContent padding={6}>
+          <VStack gap={6}>
+            {/* Header Navigation */}
+            <HeaderNav
+              onOpenZaloModal={() => setIsZaloModalOpen(true)}
+              onResetData={handleResetData}
+              onExportJson={handleExportJson}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+            {/* Thanh điều hướng tab chính */}
+            <Card>
+              <HStack hAlign="between" vAlign="center" wrap="wrap" gap={4}>
+                <SegmentedControl
+                  label="Chế độ làm việc"
+                  value={activeTab}
+                  onChange={handleTabChange}
+                  size="md"
+                >
+                  <SegmentedControlItem
+                    value="overview"
+                    label="📊 Tổng Quan & Dòng Tiền"
+                  />
+                  <SegmentedControlItem
+                    value="hui"
+                    label="🤝 Hụi / Họ Xoay Vòng"
+                  />
+                  <SegmentedControlItem
+                    value="batho"
+                    label="📝 Bát Họ Ngày (10 Ăn 8)"
+                  />
+                  <SegmentedControlItem
+                    value="calc"
+                    label="🧮 Máy Tính Dự Toán"
+                  />
+                </SegmentedControl>
+
+                <Text type="supporting" color="secondary">
+                  Cập nhật: {new Date(data.lastUpdated).toLocaleDateString('vi-VN')}
+                </Text>
+              </HStack>
+            </Card>
+
+            {/* Nội dung tab tương ứng */}
+            {activeTab === 'overview' && <DashboardOverview data={data} />}
+            {activeTab === 'hui' && (
+              <HuiTab
+                huiGroups={data.huiGroups}
+                onUpdateHuiGroups={handleUpdateHuiGroups}
+              />
+            )}
+            {activeTab === 'batho' && (
+              <BatHoTab
+                batHoLoans={data.batHoLoans}
+                onUpdateBatHoLoans={handleUpdateBatHoLoans}
+              />
+            )}
+            {activeTab === 'calc' && <CalculatorTab />}
+
+            {/* Modal Xuất Báo Cáo Zalo */}
+            <ZaloExportModal
+              isOpen={isZaloModalOpen}
+              onOpenChange={setIsZaloModalOpen}
+              data={data}
+            />
+          </VStack>
+        </LayoutContent>
+      }
+    />
   );
 }

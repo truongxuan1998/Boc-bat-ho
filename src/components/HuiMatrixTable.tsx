@@ -113,7 +113,7 @@ export function HuiMatrixTable({
   if (matrix.basePot > 0) {
     columns.push({
       key: 'wonAmount',
-      header: 'TIỀN LỤM (NHẬN ĐƯỢC)',
+      header: 'TIỀN LỤM',
       renderCell: (row) => (
         <VStack gap={0} hAlign="center">
           <Badge
@@ -132,7 +132,7 @@ export function HuiMatrixTable({
     // Cột Tổng Tiền Đã Đóng
     columns.push({
       key: 'totalPaid',
-      header: 'TỔNG ĐÃ ĐÓNG',
+      header: 'TỔNG ĐÓNG',
       renderCell: (row) => (
         <VStack gap={0} hAlign="center">
           <Text weight="semibold">
@@ -151,7 +151,7 @@ export function HuiMatrixTable({
   // Cột tổng kết Lãi / Lỗ ròng
   columns.push({
     key: 'netProfit',
-    header: 'TỔNG LÃI / LỖ',
+    header: 'LÃI / LỖ',
     renderCell: (row) => {
       if (row.netProfit > 0) {
         return (

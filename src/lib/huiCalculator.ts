@@ -139,7 +139,12 @@ export function generateProgressiveMatrix(
         // Tiền lãi nhận thêm = tổng (i * interestStep) từ 1 đến turnIndex-1
         wonBonus = ((turnIndex - 1) * turnIndex) / 2 * interestStep;
         const totalReceived = basePot + wonBonus;
-        const label = wonBonus > 0 ? `LỤM+${wonBonus}` : 'LỤM';
+        const label =
+          wonBonus > 0
+            ? interestStep >= 1000
+              ? `LỤM + ${new Intl.NumberFormat('vi-VN').format(wonBonus)} đ`
+              : `LỤM+${wonBonus}`
+            : 'LỤM';
         cells.push({
           monthIndex: monthIdx,
           monthName,
@@ -157,11 +162,15 @@ export function generateProgressiveMatrix(
         const toPay = amountPerSlot + extraInterest;
         totalInterestPaid += extraInterest;
         totalPaid += toPay;
+        const deadLabel =
+          interestStep >= 1000
+            ? `-${new Intl.NumberFormat('vi-VN').format(extraInterest)} đ`
+            : `-${extraInterest}`;
         cells.push({
           monthIndex: monthIdx,
           monthName,
           type: 'DEAD',
-          label: `-${extraInterest}`,
+          label: deadLabel,
           interestAmount: -extraInterest,
           amountToPayOrReceive: toPay,
           totalToPay: toPay,

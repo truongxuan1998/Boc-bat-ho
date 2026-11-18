@@ -44,8 +44,12 @@ export function CalculatorTab() {
     return generateProgressiveMatrix(members, startMonth, step, amountPerSlot);
   }, [membersInput, amountPerSlotInput, startMonthInput, interestStepInput]);
 
+  const firstWinner = matrix.members[0];
+  const lastWinner = matrix.members[matrix.members.length - 1];
+
   return (
     <VStack gap={6}>
+      {/* HEADER GIỚI THIỆU */}
       <Card>
         <HStack gap={3} vAlign="center">
           <Icon icon={CalculatorIcon} size="lg" />
@@ -58,21 +62,31 @@ export function CalculatorTab() {
         </HStack>
       </Card>
 
-      {/* CẤU HÌNH THÔNG SỐ MA TRẬN */}
+      {/* FORM THIẾT LẬP THÔNG SỐ CÂN ĐỐI */}
       <Card>
-        <VStack gap={4}>
-          <HStack gap={2} vAlign="center">
-            <Icon icon={SparklesIcon} size="md" />
-            <Heading level={4}>Thiết Lập Thông Số Dây Hụi</Heading>
+        <VStack gap={5}>
+          <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
+            <HStack gap={2} vAlign="center">
+              <Icon icon={SparklesIcon} size="md" />
+              <Heading level={4}>Thiết Lập Thông Số Dây Hụi</Heading>
+            </HStack>
+            <Badge
+              label={`Tổng cộng: ${matrix.totalMembers} thành viên (${matrix.totalMembers} kỳ)`}
+              variant="info"
+            />
           </HStack>
 
-          <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4}>
-            <TextInput
-              label="Danh Sách Thành Viên (Theo Thứ Tự LỤM)"
-              value={membersInput}
-              onChange={setMembersInput}
-              placeholder="KM, BẢO, CƯỜNG, TRUNG, XUÂN"
-            />
+          {/* HÀNG 1: DANH SÁCH THÀNH VIÊN RỘNG RÃI */}
+          <TextInput
+            label="Danh Sách Thành Viên (Theo Thứ Tự LỤM Từ Kỳ 1 Đến Chót)"
+            value={membersInput}
+            onChange={setMembersInput}
+            placeholder="KM, BẢO, CƯỜNG, TRUNG, XUÂN"
+            description="Nhập tên các thành viên cách nhau bằng dấu phẩy. Thứ tự từ trái sang phải tương ứng với thứ tự lụm các kỳ."
+          />
+
+          {/* HÀNG 2: 3 THÔNG SỐ TÀI CHÍNH CÂN ĐỐI 3 CỘT */}
+          <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={4}>
             <TextInput
               label="Tiền Đóng Hụi Mỗi Chân (VNĐ)"
               value={amountPerSlotInput}
@@ -86,7 +100,7 @@ export function CalculatorTab() {
               placeholder="30000"
             />
             <TextInput
-              label="Tháng Bắt Đầu (1 - 12)"
+              label="Tháng Bắt Đầu Khui Họ (1 - 12)"
               value={startMonthInput}
               onChange={setStartMonthInput}
               placeholder="4"
@@ -95,22 +109,83 @@ export function CalculatorTab() {
 
           <Divider />
 
-          {/* HỘP GIẢI THÍCH VÍ DỤ RÕ RÀNG */}
-          <Card variant="muted">
-            <HStack gap={3} vAlign="center">
-              <Icon icon={BanknotesIcon} size="md" />
+          {/* 4 THẺ CHỈ SỐ KPI TRỰC QUAN ĐỐI XỨNG CẢ 4 CỘT */}
+          <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
+            <Card variant="muted">
               <VStack gap={1}>
-                <Heading level={4}>
-                  Cơ Chế Tiền Nhận Khi LỤM ({matrix.totalMembers} người chơi • Đóng {formatMoney(matrix.baseAmount)}/chân)
+                <HStack hAlign="between" vAlign="center">
+                  <Text type="supporting" color="secondary">
+                    Tiền LỤM Gốc / Kỳ
+                  </Text>
+                  <Badge label="Gốc" variant="info" />
+                </HStack>
+                <Heading level={3}>{formatMoney(matrix.basePot)}</Heading>
+                <Text type="supporting" color="secondary">
+                  ({matrix.totalMembers} - 1) × {formatMoney(matrix.baseAmount)}
+                </Text>
+              </VStack>
+            </Card>
+
+            <Card variant="muted">
+              <VStack gap={1}>
+                <HStack hAlign="between" vAlign="center">
+                  <Text type="supporting" color="secondary">
+                    Bước Nhảy Lãi (Δ)
+                  </Text>
+                  <Badge label="Lũy Tiến" variant="warning" />
+                </HStack>
+                <Heading level={3}>+{formatMoney(matrix.interestStep)}</Heading>
+                <Text type="supporting" color="secondary">
+                  Tăng dần theo từng tháng
+                </Text>
+              </VStack>
+            </Card>
+
+            <Card variant="muted">
+              <VStack gap={1}>
+                <HStack hAlign="between" vAlign="center">
+                  <Text type="supporting" color="secondary">
+                    Kỳ 1 Nhận ({firstWinner ? firstWinner.memberName : '—'})
+                  </Text>
+                  <Badge label="Kỳ Đầu" variant="neutral" />
+                </HStack>
+                <Heading level={3}>
+                  {firstWinner ? formatMoney(firstWinner.wonAmount) : formatMoney(matrix.basePot)}
                 </Heading>
                 <Text type="supporting" color="secondary">
-                  • <Text weight="semibold">Tiền LỤM gốc nhận được:</Text> ({matrix.totalMembers} - 1) người đóng × {formatMoney(matrix.baseAmount)} = <Badge label={formatMoney(matrix.basePot)} variant="success" />
+                  Lấy vốn sớm, đóng bù sau
+                </Text>
+              </VStack>
+            </Card>
+
+            <Card variant="muted">
+              <VStack gap={1}>
+                <HStack hAlign="between" vAlign="center">
+                  <Text type="supporting" color="secondary">
+                    Kỳ Cuối Nhận ({lastWinner ? lastWinner.memberName : '—'})
+                  </Text>
+                  <Badge label="Chót Hụi" variant="success" />
+                </HStack>
+                <Heading level={3}>
+                  {lastWinner ? formatMoney(lastWinner.wonAmount) : '—'}
+                </Heading>
+                <Text type="supporting" color="secondary">
+                  Lãi ròng cao nhất (+{lastWinner ? formatMoney(lastWinner.wonBonus) : ''})
+                </Text>
+              </VStack>
+            </Card>
+          </Grid>
+
+          {/* BANNER NGUYÊN TẮC DÒNG TIỀN GỌN GÀNG */}
+          <Card variant="default">
+            <HStack gap={3} vAlign="center">
+              <Icon icon={BanknotesIcon} size="md" />
+              <VStack gap={0}>
+                <Text weight="semibold">
+                  Quy tắc nhận tiền tháng LỤM ({matrix.totalMembers} người chơi • Đóng {formatMoney(matrix.baseAmount)}/chân)
                 </Text>
                 <Text type="supporting" color="secondary">
-                  • <Text weight="semibold">Tháng người nào LỤM sẽ nhận:</Text> {formatMoney(matrix.basePot)} + Tiền Lãi Lũy Tiến
-                </Text>
-                <Text type="supporting" color="secondary">
-                  (Ví dụ: Kỳ 1 nhận <Text weight="semibold">{formatMoney(matrix.basePot)}</Text>, Kỳ 2 nhận <Text weight="semibold">{formatMoney(matrix.basePot + matrix.interestStep)}</Text>, Kỳ 3 nhận <Text weight="semibold">{formatMoney(matrix.basePot + 3 * matrix.interestStep)}</Text>...)
+                  Tháng người nào LỤM sẽ nhận đủ: <Text weight="semibold">{formatMoney(matrix.basePot)} (gốc)</Text> + <Text weight="semibold">Tiền lãi lũy tiến</Text> do các thành viên đã lụm trước đó đóng bù (Kỳ 1 nhận {formatMoney(matrix.basePot)}, Kỳ 2 nhận {formatMoney(matrix.basePot + matrix.interestStep)},...).
                 </Text>
               </VStack>
             </HStack>

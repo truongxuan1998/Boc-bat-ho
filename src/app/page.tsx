@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, LayoutContent, VStack, HStack } from '@astryxdesign/core/Layout';
 import {
   SegmentedControl,
@@ -11,29 +11,48 @@ import { Text } from '@astryxdesign/core/Text';
 import { SystemData, HuiGroup, BatHoLoan } from '@/types';
 import {
   loadSystemData,
+  loadSystemDataWithCloud,
   saveSystemData,
   initialSampleData,
 } from '@/lib/storage';
+import { subscribeToRealtimeChanges } from '@/lib/supabaseClient';
 import { HeaderNav } from '@/components/HeaderNav';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { HuiTab } from '@/components/HuiTab';
 import { BatHoTab } from '@/components/BatHoTab';
 import { CalculatorTab } from '@/components/CalculatorTab';
 import { ZaloExportModal } from '@/components/ZaloExportModal';
+import { SupabaseConfigModal } from '@/components/SupabaseConfigModal';
 
 export default function Home() {
   const [data, setData] = useState<SystemData>(initialSampleData);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // Nạp dữ liệu từ LocalStorage khi render trên Client
+  // Hàm tải dữ liệu Cloud
+  const refreshCloudData = useCallback(async () => {
+    const cloudData = await loadSystemDataWithCloud();
+    setData(cloudData);
+  }, []);
+
+  // Nạp dữ liệu khi render trên Client
   useEffect(() => {
     setIsClient(true);
-    const stored = loadSystemData();
-    setData(stored);
+    // 1. Tải tức thì từ LocalStorage (0ms)
+    const local = loadSystemData();
+    setData(local);
 
-    // Đọc URL param ?tab=
+    // 2. Tải và đồng bộ với Supabase Cloud
+    refreshCloudData();
+
+    // 3. Đăng ký lắng nghe Realtime từ Supabase
+    const unsubscribe = subscribeToRealtimeChanges(() => {
+      refreshCloudData();
+    });
+
+    // 4. Đọc URL param ?tab=
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
@@ -41,7 +60,11 @@ export default function Home() {
         setActiveTab(tabParam);
       }
     }
-  }, []);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [refreshCloudData]);
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
@@ -109,6 +132,7 @@ export default function Home() {
             {/* Header Navigation */}
             <HeaderNav
               onOpenZaloModal={() => setIsZaloModalOpen(true)}
+              onOpenCloudModal={() => setIsCloudModalOpen(true)}
               onResetData={handleResetData}
               onExportJson={handleExportJson}
             />
@@ -167,6 +191,13 @@ export default function Home() {
               isOpen={isZaloModalOpen}
               onOpenChange={setIsZaloModalOpen}
               data={data}
+            />
+
+            {/* Modal Cấu Hình Supabase Cloud */}
+            <SupabaseConfigModal
+              isOpen={isCloudModalOpen}
+              onOpenChange={setIsCloudModalOpen}
+              onConfigSaved={refreshCloudData}
             />
           </VStack>
         </LayoutContent>

@@ -1,5 +1,12 @@
 import { BatHoLoan, HuiGroup, SystemData } from '@/types';
 import { createBatHoLoan } from './batHoCalculator';
+import {
+  isSupabaseConfigured,
+  fetchHuiGroupsFromCloud,
+  fetchBatHoLoansFromCloud,
+  syncHuiGroupToCloud,
+  syncBatHoLoanToCloud,
+} from './supabaseClient';
 
 const STORAGE_KEY = 'BOC_BAT_HO_DATA_V1';
 
@@ -100,7 +107,6 @@ export const initialSampleData: SystemData = {
   batHoLoans: [
     (() => {
       const loan = createBatHoLoan('Nguyễn Văn Hùng', '0912345678', 10000000, 8000000, 50, '2026-10-01', 'Phường Bến Nghé, Q1');
-      // Đánh dấu 25 ngày đã đóng
       for (let i = 0; i < 25; i++) {
         loan.payments[i].isPaid = true;
         loan.payments[i].paidAt = loan.payments[i].date;
@@ -109,7 +115,6 @@ export const initialSampleData: SystemData = {
     })(),
     (() => {
       const loan = createBatHoLoan('Trần Thị Mai', '0987654321', 20000000, 16000000, 50, '2026-09-20', 'Chợ Tân Bình');
-      // Đánh dấu 40 ngày đã đóng
       for (let i = 0; i < 40; i++) {
         loan.payments[i].isPaid = true;
         loan.payments[i].paidAt = loan.payments[i].date;
@@ -118,7 +123,6 @@ export const initialSampleData: SystemData = {
     })(),
     (() => {
       const loan = createBatHoLoan('Lê Hoàng Nam', '0909887766', 15000000, 12000000, 50, '2026-10-25', 'Quận Gò Vấp');
-      // Đánh dấu 5 ngày đã đóng
       for (let i = 0; i < 5; i++) {
         loan.payments[i].isPaid = true;
         loan.payments[i].paidAt = loan.payments[i].date;
@@ -145,12 +149,60 @@ export function loadSystemData(): SystemData {
   }
 }
 
+/**
+ * Đọc dữ liệu đám mây Supabase (nếu có cấu hình), tự động đồng bộ 2 chiều
+ */
+export async function loadSystemDataWithCloud(): Promise<SystemData> {
+  const localData = loadSystemData();
+  if (!isSupabaseConfigured()) {
+    return localData;
+  }
+
+  try {
+    const [cloudHui, cloudBatHo] = await Promise.all([
+      fetchHuiGroupsFromCloud(),
+      fetchBatHoLoansFromCloud(),
+    ]);
+
+    // Nếu trên Cloud đã có dữ liệu, dùng dữ liệu Cloud và cache vào LocalStorage
+    if (cloudHui && cloudHui.length > 0) {
+      const updatedData: SystemData = {
+        huiGroups: cloudHui,
+        batHoLoans: cloudBatHo || localData.batHoLoans,
+        lastUpdated: new Date().toISOString(),
+      };
+      saveSystemData(updatedData);
+      return updatedData;
+    }
+
+    // Nếu trên Cloud còn trống, tự động đẩy dữ liệu cục bộ lên Cloud
+    if (localData.huiGroups.length > 0 || localData.batHoLoans.length > 0) {
+      for (const h of localData.huiGroups) {
+        await syncHuiGroupToCloud(h);
+      }
+      for (const b of localData.batHoLoans) {
+        await syncBatHoLoanToCloud(b);
+      }
+    }
+  } catch (e) {
+    console.error('Lỗi đồng bộ Supabase:', e);
+  }
+
+  return localData;
+}
+
 export function saveSystemData(data: SystemData): void {
   if (typeof window === 'undefined') return;
   try {
     data.lastUpdated = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    // Đẩy bất đồng bộ lên Supabase nếu có kết nối
+    if (isSupabaseConfigured()) {
+      data.huiGroups.forEach((h) => syncHuiGroupToCloud(h));
+      data.batHoLoans.forEach((b) => syncBatHoLoanToCloud(b));
+    }
   } catch (e) {
-    console.error('Lỗi khi lưu dữ liệu vào LocalStorage', e);
+    console.error('Lỗi khi lưu dữ liệu', e);
   }
 }

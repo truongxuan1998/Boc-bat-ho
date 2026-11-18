@@ -31,14 +31,14 @@ function formatMoneyOrStep(val: number): string {
 
 export function HuiMatrixTable({
   matrix,
-  title = 'Bảng Ma Trận Đóng Hụi Lũy Tiến Bậc Thang',
-  subtitle = 'Mô hình chuẩn theo dõi kỳ LỤM (xanh lá), kỳ đóng bù sau lụm (xám), và kỳ chân sống',
+  title = 'Bảng ma trận đóng hụi lũy tiến bậc thang',
+  subtitle = 'Mô hình chuẩn theo dõi kỳ lụm (xanh lá), kỳ đóng bù sau lụm (xám), và kỳ chân sống',
 }: HuiMatrixTableProps) {
   // Định nghĩa các cột Table động theo danh sách tháng
   const columns: TableColumn<ProgressiveHuiMemberRow>[] = [
     {
       key: 'memberName',
-      header: 'TÊN',
+      header: 'Thành viên',
       renderCell: (row) => (
         <HStack gap={2} vAlign="center">
           <Badge label={row.memberName} variant="warning" />
@@ -54,7 +54,7 @@ export function HuiMatrixTable({
   matrix.months.forEach((monthName, idx) => {
     columns.push({
       key: `month_${idx}`,
-      header: monthName.toUpperCase(),
+      header: monthName.toLowerCase().replace(/^t/, 'T'),
       renderCell: (row) => {
         const cell = row.cells[idx];
         if (!cell) return <Text color="disabled">—</Text>;
@@ -113,7 +113,7 @@ export function HuiMatrixTable({
   if (matrix.basePot > 0) {
     columns.push({
       key: 'wonAmount',
-      header: 'TIỀN LỤM',
+      header: 'Tiền lụm',
       renderCell: (row) => (
         <VStack gap={0} hAlign="center">
           <Badge
@@ -132,7 +132,7 @@ export function HuiMatrixTable({
     // Cột Tổng Tiền Đã Đóng
     columns.push({
       key: 'totalPaid',
-      header: 'TỔNG ĐÓNG',
+      header: 'Tổng đóng',
       renderCell: (row) => (
         <VStack gap={0} hAlign="center">
           <Text weight="semibold">
@@ -151,7 +151,7 @@ export function HuiMatrixTable({
   // Cột tổng kết Lãi / Lỗ ròng
   columns.push({
     key: 'netProfit',
-    header: 'LÃI / LỖ',
+    header: 'Lãi / Lỗ',
     renderCell: (row) => {
       if (row.netProfit > 0) {
         return (
@@ -187,15 +187,15 @@ export function HuiMatrixTable({
               <VStack gap={0}>
                 <Heading level={4}>{title}</Heading>
                 <Text type="supporting" color="secondary">
-                  {subtitle} • Bước nhảy lãi: <Text weight="semibold">Δ = {formatMoneyOrStep(matrix.interestStep)}</Text>
+                  {subtitle} • Bước nhảy lãi: <Text weight="semibold">{formatMoneyOrStep(matrix.interestStep)}</Text>
                 </Text>
               </VStack>
             </HStack>
 
             <HStack gap={2} vAlign="center" wrap="wrap">
-              <Badge label="Ô Xanh: Số Tiền Nhận Được" variant="success" />
-              <Badge label="Ô Xám: Sau Lụm (-bù)" variant="neutral" />
-              <Badge label="Ô Trống: Chân Sống" variant="neutral" />
+              <Badge label="Ô xanh: Số tiền nhận được" variant="success" />
+              <Badge label="Ô xám: Sau lụm (-bù)" variant="neutral" />
+              <Badge label="Ô trống: Chân sống" variant="neutral" />
             </HStack>
           </HStack>
 
@@ -206,11 +206,11 @@ export function HuiMatrixTable({
                 variant="info"
               />
               <Badge
-                label={`Tiền LỤM gốc: (${matrix.totalMembers} - 1) × ${formatMoneyOrStep(matrix.baseAmount)} = ${formatMoneyOrStep(matrix.basePot)}`}
+                label={`Tiền lụm gốc: (${matrix.totalMembers} - 1) × ${formatMoneyOrStep(matrix.baseAmount)} = ${formatMoneyOrStep(matrix.basePot)}`}
                 variant="success"
               />
               <Badge
-                label={`Bước nhảy lãi: Δ = ${formatMoneyOrStep(matrix.interestStep)}`}
+                label={`Bước nhảy lãi: ${formatMoneyOrStep(matrix.interestStep)}`}
                 variant="warning"
               />
             </HStack>
@@ -234,14 +234,14 @@ export function HuiMatrixTable({
           <VStack gap={2}>
             <HStack hAlign="between" vAlign="center">
               <Text type="supporting" color="secondary">
-                Lấy Vốn Sớm Nhất (Kỳ 1)
+                Lấy vốn sớm nhất (kỳ 1)
               </Text>
               <Icon icon={ArrowTrendingDownIcon} size="md" />
             </HStack>
             <HStack gap={2} vAlign="center">
               <Heading level={3}>{firstWinner ? firstWinner.memberName : '—'}</Heading>
               {firstWinner && (
-                <Badge label={`${formatMoneyOrStep(firstWinner.netProfit)} (Chịu Lãi)`} variant="error" />
+                <Badge label={`${formatMoneyOrStep(firstWinner.netProfit)} (Chịu lãi)`} variant="error" />
               )}
             </HStack>
             <Text type="supporting">
@@ -254,14 +254,14 @@ export function HuiMatrixTable({
           <VStack gap={2}>
             <HStack hAlign="between" vAlign="center">
               <Text type="supporting" color="secondary">
-                Hốt Chót Lãi Cao Nhất (Kỳ Cuối)
+                Hốt chót lãi cao nhất (kỳ cuối)
               </Text>
               <Icon icon={ArrowTrendingUpIcon} size="md" />
             </HStack>
             <HStack gap={2} vAlign="center">
               <Heading level={3}>{lastWinner ? lastWinner.memberName : '—'}</Heading>
               {lastWinner && (
-                <Badge label={`+${formatMoneyOrStep(lastWinner.netProfit)} (Lời Ròng)`} variant="success" />
+                <Badge label={`+${formatMoneyOrStep(lastWinner.netProfit)} (Lời ròng)`} variant="success" />
               )}
             </HStack>
             <Text type="supporting">

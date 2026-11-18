@@ -17,26 +17,21 @@ export function CalculatorTab() {
   const [huiSlots, setHuiSlots] = useState('12');
   const [huiAmount, setHuiAmount] = useState('5000000');
   const [huiBidAvg, setHuiBidAvg] = useState('400000');
-  const [huiCommission, setHuiCommission] = useState('500000');
 
   const slotsCount = parseInt(huiSlots, 10) || 12;
   const slotAmount = parseInt(huiAmount.replace(/\D/g, ''), 10) || 5000000;
   const bidAvg = parseInt(huiBidAvg.replace(/\D/g, ''), 10) || 400000;
-  const commission = parseInt(huiCommission.replace(/\D/g, ''), 10) || 500000;
 
   // Tổng tiền cả dây
   const totalHuiValue = slotsCount * slotAmount;
-  // Tổng tiền xâu chủ hụi thu qua cả dây
-  const totalHostCommission = slotsCount * commission;
-  // Người hốt đầu tiên (kỳ 1): nhận = (slotsCount - 1) * (slotAmount - bidAvg) - commission
-  const firstWinnerReceive =
-    (slotsCount - 1) * (slotAmount - bidAvg) - commission;
+  // Người hốt đầu tiên (kỳ 1): nhận = (slotsCount - 1) * (slotAmount - bidAvg)
+  const firstWinnerReceive = (slotsCount - 1) * (slotAmount - bidAvg);
   // Tổng tiền người hốt đầu phải đóng ở các kỳ sau (chân chết): (slotsCount - 1) * slotAmount
   const firstWinnerTotalPaid = (slotsCount - 1) * slotAmount;
   const firstWinnerNetCost = firstWinnerTotalPaid - firstWinnerReceive;
 
-  // Người hốt cuối cùng (kỳ chót): nhận = (slotsCount - 1) * slotAmount - commission
-  const lastWinnerReceive = (slotsCount - 1) * slotAmount - commission;
+  // Người hốt cuối cùng (kỳ chót): nhận = (slotsCount - 1) * slotAmount
+  const lastWinnerReceive = (slotsCount - 1) * slotAmount;
   // Tổng tiền người hốt cuối đã đóng ở các kỳ trước (toàn bộ là chân sống): (slotsCount - 1) * (slotAmount - bidAvg)
   const lastWinnerTotalPaid = (slotsCount - 1) * (slotAmount - bidAvg);
   const lastWinnerNetProfit = lastWinnerReceive - lastWinnerTotalPaid;
@@ -63,7 +58,7 @@ export function CalculatorTab() {
             <Heading level={4}>Thông Số Dây Hụi Dự Kiến</Heading>
           </HStack>
 
-          <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
+          <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4}>
             <TextInput
               label="Số Chân (Kỳ Hụi)"
               value={huiSlots}
@@ -82,12 +77,6 @@ export function CalculatorTab() {
               onChange={setHuiBidAvg}
               placeholder="400000"
             />
-            <TextInput
-              label="Tiền Xâu Mỗi Kỳ (VNĐ)"
-              value={huiCommission}
-              onChange={setHuiCommission}
-              placeholder="500000"
-            />
           </Grid>
 
           <Divider />
@@ -100,10 +89,7 @@ export function CalculatorTab() {
                 </Text>
                 <Heading level={4}>{formatCurrency(totalHuiValue)}</Heading>
                 <Text type="supporting">
-                  Chủ hụi thu xâu trọn gói:{' '}
-                  <Text weight="semibold">
-                    {formatCurrency(totalHostCommission)}
-                  </Text>
+                  Góp {formatCurrency(slotAmount)} / kỳ cho {slotsCount} chân
                 </Text>
               </VStack>
             </Card>

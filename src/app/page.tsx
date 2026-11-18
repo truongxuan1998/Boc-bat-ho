@@ -131,8 +131,6 @@ export default function Home() {
             {/* Header Navigation */}
             <HeaderNav
               onOpenZaloModal={() => setIsZaloModalOpen(true)}
-              onResetData={handleResetData}
-              onExportJson={handleExportJson}
             />
 
             {/* Thanh điều hướng tab chính */}

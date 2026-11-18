@@ -53,7 +53,6 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   const [newHuiName, setNewHuiName] = useState('');
   const [newHuiAmount, setNewHuiAmount] = useState('2000000');
   const [newHuiSlotsCount, setNewHuiSlotsCount] = useState('10');
-  const [newHuiCommission, setNewHuiCommission] = useState('300000');
   const [newHuiCycle, setNewHuiCycle] = useState<'MONTHLY' | 'WEEKLY' | 'DAILY'>('MONTHLY');
 
   const currentHui =
@@ -67,7 +66,6 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     }
     const amount = parseInt(newHuiAmount.replace(/\D/g, ''), 10) || 2000000;
     const slotsCount = parseInt(newHuiSlotsCount, 10) || 10;
-    const commission = parseInt(newHuiCommission.replace(/\D/g, ''), 10) || 200000;
 
     const newId = 'hui_' + Date.now();
     const slots = [];
@@ -87,7 +85,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       amountPerSlot: amount,
       totalSlots: slotsCount,
       cycle: newHuiCycle,
-      commissionPerPeriod: commission,
+      commissionPerPeriod: 0,
       startDate: new Date().toISOString().split('T')[0],
       status: 'ACTIVE',
       slots,
@@ -133,13 +131,6 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           value={newHuiSlotsCount}
           onChange={setNewHuiSlotsCount}
           placeholder="10"
-        />
-
-        <TextInput
-          label="Tiền Xâu Chủ Hụi / Kỳ (VNĐ)"
-          value={newHuiCommission}
-          onChange={setNewHuiCommission}
-          placeholder="300000"
         />
 
         <Selector
@@ -497,10 +488,10 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
         <Card>
           <VStack gap={1}>
             <Text type="supporting" color="secondary">
-              Tiền Xâu Chủ Hụi
+              Số Kỳ Đã Khui
             </Text>
-            <Heading level={4}>{formatCurrency(currentHui.commissionPerPeriod)}</Heading>
-            <Text type="supporting">Hoa hồng thu mỗi kỳ</Text>
+            <Heading level={4}>{currentHui.periods?.length || 0} / {currentHui.totalSlots} Kỳ</Heading>
+            <Text type="supporting">Tiến độ dây hụi</Text>
           </VStack>
         </Card>
         <Card>
@@ -534,8 +525,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
                   | Thực lĩnh người hốt:{' '}
                   <Text weight="semibold">
                     {formatCurrency(latestPeriod.actualReceived)}
-                  </Text>{' '}
-                  (Đã trừ xâu {formatCurrency(latestPeriod.commissionFee)})
+                  </Text>
                 </Text>
               </VStack>
             </HStack>

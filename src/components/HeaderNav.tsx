@@ -6,23 +6,13 @@ import { Heading, Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { Icon } from '@astryxdesign/core/Icon';
-import {
-  ArrowDownTrayIcon,
-  ArrowPathIcon,
-  ChatBubbleLeftRightIcon,
-} from '@heroicons/react/24/outline';
+import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 interface HeaderNavProps {
   onOpenZaloModal: () => void;
-  onResetData: () => void;
-  onExportJson: () => void;
 }
 
-export function HeaderNav({
-  onOpenZaloModal,
-  onResetData,
-  onExportJson,
-}: HeaderNavProps) {
+export function HeaderNav({ onOpenZaloModal }: HeaderNavProps) {
   return (
     <VStack gap={4}>
       <HStack hAlign="between" vAlign="center" wrap="wrap" gap={4}>
@@ -50,20 +40,6 @@ export function HeaderNav({
             size="md"
             icon={<Icon icon={ChatBubbleLeftRightIcon} size="sm" />}
             onClick={onOpenZaloModal}
-          />
-          <Button
-            label="Tải Sao Lưu JSON"
-            variant="secondary"
-            size="md"
-            icon={<Icon icon={ArrowDownTrayIcon} size="sm" />}
-            onClick={onExportJson}
-          />
-          <Button
-            label="Xóa Trắng Dữ Liệu"
-            variant="ghost"
-            size="md"
-            icon={<Icon icon={ArrowPathIcon} size="sm" />}
-            onClick={onResetData}
           />
         </HStack>
       </HStack>

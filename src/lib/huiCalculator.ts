@@ -47,8 +47,8 @@ export function calculateNewHuiPeriod(
     });
   }
 
-  const commissionFee = hui.commissionPerPeriod || 0;
-  const actualReceived = Math.max(0, totalCollected - commissionFee);
+  const commissionFee = 0;
+  const actualReceived = totalCollected;
 
   return {
     periodNumber,

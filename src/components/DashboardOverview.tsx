@@ -33,15 +33,17 @@ interface DashboardOverviewProps {
 export function DashboardOverview({ data }: DashboardOverviewProps) {
   // 1. Tính toán thống kê Hụi
   let totalHuiFund = 0;
-  let totalHuiCommission = 0;
   let totalHuiCollected = 0;
   let totalHuiDebt = 0;
   let totalUnpaidSlots = 0;
+  let totalPeriodsOpened = 0;
+  let totalSlotsCount = 0;
 
   for (const hui of data.huiGroups) {
     totalHuiFund += hui.amountPerSlot * hui.totalSlots;
+    totalSlotsCount += hui.totalSlots;
+    totalPeriodsOpened += hui.periods?.length || 0;
     for (const period of hui.periods || []) {
-      totalHuiCommission += period.commissionFee;
       for (const p of period.payments) {
         if (p.isPaid) {
           totalHuiCollected += p.amountToPay;
@@ -59,9 +61,7 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
       ? data.huiGroups.map((g) => {
           let col = 0;
           let debt = 0;
-          let fee = 0;
           for (const period of g.periods || []) {
-            fee += period.commissionFee;
             for (const p of period.payments) {
               if (p.isPaid) {
                 col += p.amountToPay;
@@ -75,7 +75,6 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
             'Tổng Vốn Dây': Math.round((g.amountPerSlot * g.totalSlots) / 1000000),
             'Đã Thu': Math.round(col / 1000000),
             'Còn Nợ': Math.round(debt / 1000000),
-            'Tiền Xâu': Math.round(fee / 1000000),
           };
         })
       : [
@@ -84,7 +83,6 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
             'Tổng Vốn Dây': 0,
             'Đã Thu': 0,
             'Còn Nợ': 0,
-            'Tiền Xâu': 0,
           },
         ];
 
@@ -103,21 +101,6 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
             <Heading level={3}>{formatCurrency(totalHuiFund)}</Heading>
             <Text type="supporting">
               {data.huiGroups.length} dây hụi đang hoạt động
-            </Text>
-          </VStack>
-        </Card>
-
-        <Card>
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Tiền Xâu Thu Được (Chủ Hụi)
-              </Text>
-              <Icon icon={SparklesIcon} size="md" />
-            </HStack>
-            <Heading level={3}>{formatCurrency(totalHuiCommission)}</Heading>
-            <Text type="supporting">
-              Lợi nhuận trích từ các kỳ hụi đã khui
             </Text>
           </VStack>
         </Card>
@@ -154,6 +137,21 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
             </HStack>
           </VStack>
         </Card>
+
+        <Card>
+          <VStack gap={2}>
+            <HStack hAlign="between" vAlign="center">
+              <Text type="supporting" color="secondary">
+                Tiến Độ Khui Hụi
+              </Text>
+              <Icon icon={SparklesIcon} size="md" />
+            </HStack>
+            <Heading level={3}>
+              {totalPeriodsOpened} / {totalSlotsCount} Kỳ
+            </Heading>
+            <Text type="supporting">Tổng số kỳ đã khui thực tế</Text>
+          </VStack>
+        </Card>
       </Grid>
 
       {/* Biểu đồ dòng tiền phân tích */}
@@ -163,7 +161,7 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
             <VStack gap={1}>
               <Heading level={4}>Thống Kê Dòng Tiền Dây Hụi (Triệu VNĐ)</Heading>
               <Text type="supporting" color="secondary">
-                Biểu đồ phân bổ nguồn vốn, số tiền đã thu hồi, dư nợ và tiền xâu theo từng dây hụi
+                Biểu đồ phân bổ nguồn vốn, số tiền đã thu hồi và dư nợ còn lại theo từng dây hụi
               </Text>
             </VStack>
           </HStack>
@@ -181,7 +179,6 @@ export function DashboardOverview({ data }: DashboardOverviewProps) {
               <Bar dataKey="Tổng Vốn Dây" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Đã Thu" fill="#10b981" radius={[4, 4, 0, 0]} />
               <Bar dataKey="Còn Nợ" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Tiền Xâu" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </VStack>

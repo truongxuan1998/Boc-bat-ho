@@ -51,9 +51,7 @@ export function ZaloExportModal({
           lines.push(`• Người hốt: ${latestPeriod.winnerName}`);
           lines.push(`• Mức thăm kêu lãi: ${formatCurrency(latestPeriod.bidAmount)}`);
           lines.push(
-            `• Thực lĩnh về tay: ${formatCurrency(
-              latestPeriod.actualReceived
-            )} (sau khi trừ xâu ${formatCurrency(latestPeriod.commissionFee)})`
+            `• Thực lĩnh về tay: ${formatCurrency(latestPeriod.actualReceived)}`
           );
 
           lines.push('\n💰 TIỀN PHẢI NỘP KỲ NÀY:');

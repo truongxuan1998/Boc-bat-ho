@@ -72,7 +72,7 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
       }
     }
   } catch (e) {
-    console.error('Lỗi đồng bộ Supabase:', e);
+    console.warn('Lỗi đồng bộ Supabase:', e);
   }
 
   return localData;

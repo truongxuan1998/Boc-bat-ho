@@ -82,7 +82,7 @@ export async function fetchHuiGroupsFromCloud(): Promise<HuiGroup[] | null> {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Lỗi khi tải Dây Hụi từ Supabase:', error);
+      console.warn('Lỗi khi tải Dây Hụi từ Supabase:', error.message);
       return null;
     }
     return (data || []).map((row) => ({
@@ -99,7 +99,7 @@ export async function fetchHuiGroupsFromCloud(): Promise<HuiGroup[] | null> {
       note: row.note,
     }));
   } catch (e) {
-    console.error('Lỗi kết nối Supabase:', e);
+    console.warn('Lỗi kết nối Supabase:', e);
     return null;
   }
 }
@@ -123,12 +123,12 @@ export async function syncHuiGroupToCloud(group: HuiGroup): Promise<boolean> {
       updated_at: new Date().toISOString(),
     });
     if (error) {
-      console.error('Lỗi khi lưu Dây Hụi lên Supabase:', error);
+      console.warn('Lỗi khi lưu Dây Hụi lên Supabase:', error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.error('Lỗi kết nối Supabase:', e);
+    console.warn('Lỗi kết nối Supabase:', e);
     return false;
   }
 }
@@ -143,7 +143,7 @@ export async function fetchBatHoLoansFromCloud(): Promise<BatHoLoan[] | null> {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Lỗi khi tải Bát Họ từ Supabase:', error);
+      console.warn('Lỗi khi tải Bát Họ từ Supabase:', error.message);
       return null;
     }
     return (data || []).map((row) => ({
@@ -162,7 +162,7 @@ export async function fetchBatHoLoansFromCloud(): Promise<BatHoLoan[] | null> {
       note: row.note,
     }));
   } catch (e) {
-    console.error('Lỗi kết nối Supabase:', e);
+    console.warn('Lỗi kết nối Supabase:', e);
     return null;
   }
 }
@@ -188,12 +188,12 @@ export async function syncBatHoLoanToCloud(loan: BatHoLoan): Promise<boolean> {
       updated_at: new Date().toISOString(),
     });
     if (error) {
-      console.error('Lỗi khi lưu Bát Họ lên Supabase:', error);
+      console.warn('Lỗi khi lưu Bát Họ lên Supabase:', error.message);
       return false;
     }
     return true;
   } catch (e) {
-    console.error('Lỗi kết nối Supabase:', e);
+    console.warn('Lỗi kết nối Supabase:', e);
     return false;
   }
 }

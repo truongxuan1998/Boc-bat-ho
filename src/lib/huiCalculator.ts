@@ -1,16 +1,24 @@
-import { HuiGroup, HuiPeriod, HuiPeriodPayment, HuiSlot } from '@/types';
+import {
+  HuiGroup,
+  HuiPeriod,
+  HuiPeriodPayment,
+  HuiSlot,
+  ProgressiveHuiMatrix,
+  ProgressiveHuiMemberRow,
+  ProgressiveHuiCell,
+} from '@/types';
 
 /**
- * Tính toán chi tiết cho một kỳ khui hụi mới
+ * Tính toán chi tiết cho một kỳ khui hụi mới (hỗ trợ cả Hụi Lũy Tiến Bậc Thang)
  * @param hui Dây hụi
  * @param winnerSlotId Chân hụi hốt kỳ này
- * @param bidAmount Mức thăm / kêu hụi (tiền trả lãi của người hốt)
+ * @param bidAmount Mức thăm / kêu hụi (nếu chơi đấu giá) hoặc 0 (nếu chơi lũy tiến)
  * @param openDate Ngày khui
  */
 export function calculateNewHuiPeriod(
   hui: HuiGroup,
   winnerSlotId: string,
-  bidAmount: number,
+  bidAmount: number = 0,
   openDate: string = new Date().toISOString().split('T')[0]
 ): HuiPeriod {
   const winnerSlot = hui.slots.find((s) => s.id === winnerSlotId);
@@ -21,6 +29,7 @@ export function calculateNewHuiPeriod(
   const periodNumber = (hui.periods?.length || 0) + 1;
   const payments: HuiPeriodPayment[] = [];
   let totalCollected = 0;
+  const interestStep = hui.interestStep || 0;
 
   // Lặp qua tất cả các chân khác (ngoại trừ chân hốt kỳ này)
   for (const slot of hui.slots) {
@@ -28,13 +37,27 @@ export function calculateNewHuiPeriod(
       continue; // Người hốt không tự đóng cho mình kỳ này
     }
 
-    let amountToPay = 0;
-    if (slot.isDead) {
-      // Chân chết (đã hốt ở các kỳ trước): đóng 100% tiền gốc
-      amountToPay = hui.amountPerSlot;
+    let amountToPay = hui.amountPerSlot;
+
+    if (interestStep > 0) {
+      // LOGIC HỤI LŨY TIẾN BẬC THANG
+      if (slot.isDead) {
+        // Chân chết: đã lụm ở kỳ trước, đóng thêm lãi theo khoảng cách số kỳ
+        const wonPeriod = slot.wonPeriod || 1;
+        const stepCount = Math.max(1, periodNumber - wonPeriod);
+        const extraInterest = stepCount * interestStep;
+        amountToPay = hui.amountPerSlot + extraInterest;
+      } else {
+        // Chân sống: đóng tiền gốc cơ bản
+        amountToPay = hui.amountPerSlot;
+      }
     } else {
-      // Chân sống (chưa hốt): đóng tiền gốc trừ đi tiền thăm kêu của người hốt
-      amountToPay = Math.max(0, hui.amountPerSlot - bidAmount);
+      // Hụi thường (nếu có bidAmount)
+      if (slot.isDead) {
+        amountToPay = hui.amountPerSlot;
+      } else {
+        amountToPay = Math.max(0, hui.amountPerSlot - bidAmount);
+      }
     }
 
     totalCollected += amountToPay;
@@ -55,12 +78,101 @@ export function calculateNewHuiPeriod(
     openDate,
     winnerSlotId,
     winnerName: winnerSlot.memberName,
-    bidAmount,
+    bidAmount: interestStep > 0 ? (periodNumber - 1) * periodNumber / 2 * interestStep : bidAmount,
     totalCollected,
     commissionFee,
     actualReceived,
     payments,
     isCompleted: false,
+  };
+}
+
+/**
+ * Sinh ma trận tính hụi lũy tiến bậc thang chuẩn 100% theo logic bảng tính Excel
+ */
+export function generateProgressiveMatrix(
+  members: string[],
+  startMonth: number = 4,
+  interestStep: number = 30,
+  basePot: number = 0
+): ProgressiveHuiMatrix {
+  const totalMembers = members.length;
+  const months: string[] = [];
+  for (let i = 0; i < totalMembers; i++) {
+    const m = ((startMonth - 1 + i) % 12) + 1;
+    months.push(`THÁNG ${m}`);
+  }
+
+  const rows: ProgressiveHuiMemberRow[] = members.map((name, memberIndex) => {
+    const turnIndex = memberIndex + 1; // 1-based index (kỳ người này lụm)
+    const cells: ProgressiveHuiCell[] = [];
+    let wonAmount = 0;
+    let totalInterestPaid = 0;
+
+    for (let monthIdx = 0; monthIdx < totalMembers; monthIdx++) {
+      const currentPeriod = monthIdx + 1;
+      const monthName = months[monthIdx];
+
+      if (currentPeriod < turnIndex) {
+        // Chưa tới lượt lụm (Chân sống - ô màu đen)
+        cells.push({
+          monthIndex: monthIdx,
+          monthName,
+          type: 'ALIVE',
+          label: '—',
+          interestAmount: 0,
+          amountToPayOrReceive: basePot > 0 ? basePot : 0,
+        });
+      } else if (currentPeriod === turnIndex) {
+        // Đúng kỳ lụm (Ô màu xanh lá)
+        // Tiền lãi nhận thêm = tổng (i * interestStep) từ 1 đến turnIndex-1
+        const wonBonus = ((turnIndex - 1) * turnIndex) / 2 * interestStep;
+        wonAmount = wonBonus;
+        const label = wonBonus > 0 ? `LỤM+${wonBonus}` : 'LỤM';
+        cells.push({
+          monthIndex: monthIdx,
+          monthName,
+          type: 'WON',
+          label,
+          interestAmount: wonBonus,
+          amountToPayOrReceive: basePot > 0 ? basePot + wonBonus : wonBonus,
+        });
+      } else {
+        // Đã lụm ở kỳ trước (Chân chết - ô màu xám)
+        // Đóng thêm tiền lãi = (currentPeriod - turnIndex) * interestStep
+        const stepCount = currentPeriod - turnIndex;
+        const extraInterest = stepCount * interestStep;
+        totalInterestPaid += extraInterest;
+        cells.push({
+          monthIndex: monthIdx,
+          monthName,
+          type: 'DEAD',
+          label: `-${extraInterest}`,
+          interestAmount: -extraInterest,
+          amountToPayOrReceive: basePot > 0 ? basePot + extraInterest : extraInterest,
+        });
+      }
+    }
+
+    const netProfit = wonAmount - totalInterestPaid;
+
+    return {
+      memberId: `mem_${turnIndex}`,
+      memberName: name,
+      turnIndex,
+      cells,
+      wonAmount,
+      totalInterestPaid,
+      netProfit,
+    };
+  });
+
+  return {
+    months,
+    members: rows,
+    interestStep,
+    baseAmount: basePot,
+    totalMembers,
   };
 }
 

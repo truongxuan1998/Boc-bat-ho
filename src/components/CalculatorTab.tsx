@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { VStack, HStack } from '@astryxdesign/core/Layout';
 import { Heading, Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
@@ -9,32 +9,32 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Icon } from '@astryxdesign/core/Icon';
-import { CalculatorIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { formatCurrency } from '@/lib/huiCalculator';
+import {
+  CalculatorIcon,
+  SparklesIcon,
+  InformationCircleIcon,
+} from '@heroicons/react/24/outline';
+import { generateProgressiveMatrix } from '@/lib/huiCalculator';
+import { HuiMatrixTable } from '@/components/HuiMatrixTable';
 
 export function CalculatorTab() {
-  // 1. State Dự Toán Hụi
-  const [huiSlots, setHuiSlots] = useState('12');
-  const [huiAmount, setHuiAmount] = useState('5000000');
-  const [huiBidAvg, setHuiBidAvg] = useState('400000');
+  // 1. State cấu hình mô phỏng Ma Trận Lũy Tiến
+  const [membersInput, setMembersInput] = useState('KM, BẢO, CƯỜNG, TRUNG, XUÂN, BÌNH');
+  const [startMonthInput, setStartMonthInput] = useState('4');
+  const [interestStepInput, setInterestStepInput] = useState('30');
 
-  const slotsCount = parseInt(huiSlots, 10) || 12;
-  const slotAmount = parseInt(huiAmount.replace(/\D/g, ''), 10) || 5000000;
-  const bidAvg = parseInt(huiBidAvg.replace(/\D/g, ''), 10) || 400000;
+  // Tính toán ma trận lũy tiến theo công thức người dùng
+  const matrix = useMemo(() => {
+    const rawNames = membersInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const members = rawNames.length > 0 ? rawNames : ['KM', 'BẢO', 'CƯỜNG', 'TRUNG', 'XUÂN', 'BÌNH'];
+    const startMonth = parseInt(startMonthInput, 10) || 4;
+    const step = parseInt(interestStepInput.replace(/\D/g, ''), 10) || 30;
 
-  // Tổng tiền cả dây
-  const totalHuiValue = slotsCount * slotAmount;
-  // Người hốt đầu tiên (kỳ 1): nhận = (slotsCount - 1) * (slotAmount - bidAvg)
-  const firstWinnerReceive = (slotsCount - 1) * (slotAmount - bidAvg);
-  // Tổng tiền người hốt đầu phải đóng ở các kỳ sau (chân chết): (slotsCount - 1) * slotAmount
-  const firstWinnerTotalPaid = (slotsCount - 1) * slotAmount;
-  const firstWinnerNetCost = firstWinnerTotalPaid - firstWinnerReceive;
-
-  // Người hốt cuối cùng (kỳ chót): nhận = (slotsCount - 1) * slotAmount
-  const lastWinnerReceive = (slotsCount - 1) * slotAmount;
-  // Tổng tiền người hốt cuối đã đóng ở các kỳ trước (toàn bộ là chân sống): (slotsCount - 1) * (slotAmount - bidAvg)
-  const lastWinnerTotalPaid = (slotsCount - 1) * (slotAmount - bidAvg);
-  const lastWinnerNetProfit = lastWinnerReceive - lastWinnerTotalPaid;
+    return generateProgressiveMatrix(members, startMonth, step);
+  }, [membersInput, startMonthInput, interestStepInput]);
 
   return (
     <VStack gap={6}>
@@ -42,96 +42,60 @@ export function CalculatorTab() {
         <HStack gap={3} vAlign="center">
           <Icon icon={CalculatorIcon} size="lg" />
           <VStack gap={0}>
-            <Heading level={3}>Máy Tính Dự Toán Hụi / Họ Xoay Vòng</Heading>
+            <Heading level={3}>Máy Tính Dự Toán Hụi Lũy Tiến Bậc Thang</Heading>
             <Text type="supporting" color="secondary">
-              Công cụ tính nhẩm dòng tiền, tỉ suất sinh lời người hốt chót và chi phí người hốt đầu trước khi vào dây hụi
+              Mô phỏng chính xác ma trận dòng tiền, kỳ LỤM tiền tươi, các kỳ đóng bù sau khi lụm và tổng kết Lãi/Lỗ ròng
             </Text>
           </VStack>
         </HStack>
       </Card>
 
-      {/* DỰ TOÁN HỤI / HỌ XOAY VÒNG */}
+      {/* CẤU HÌNH THÔNG SỐ MA TRẬN */}
       <Card>
         <VStack gap={4}>
           <HStack gap={2} vAlign="center">
             <Icon icon={SparklesIcon} size="md" />
-            <Heading level={4}>Thông Số Dây Hụi Dự Kiến</Heading>
+            <Heading level={4}>Thiết Lập Thông Số Dây Hụi</Heading>
           </HStack>
 
-          <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4}>
+          <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4}>
             <TextInput
-              label="Số Chân (Kỳ Hụi)"
-              value={huiSlots}
-              onChange={setHuiSlots}
-              placeholder="12"
+              label="Danh Sách Thành Viên (Theo Thứ Tự LỤM)"
+              value={membersInput}
+              onChange={setMembersInput}
+              placeholder="KM, BẢO, CƯỜNG, TRUNG, XUÂN, BÌNH"
             />
             <TextInput
-              label="Tiền Góp Mỗi Chân (VNĐ)"
-              value={huiAmount}
-              onChange={setHuiAmount}
-              placeholder="5000000"
+              label="Tháng Bắt Đầu (1 - 12)"
+              value={startMonthInput}
+              onChange={setStartMonthInput}
+              placeholder="4"
             />
             <TextInput
-              label="Mức Kêu Trung Bình (VNĐ)"
-              value={huiBidAvg}
-              onChange={setHuiBidAvg}
-              placeholder="400000"
+              label="Bước Nhảy Lãi Lũy Tiến (Δ)"
+              value={interestStepInput}
+              onChange={setInterestStepInput}
+              placeholder="30"
             />
           </Grid>
 
           <Divider />
 
-          <Grid columns={{ minWidth: 240, repeat: 'fit' }} gap={4}>
-            <Card variant="muted">
-              <VStack gap={1}>
-                <Text type="supporting" color="secondary">
-                  Tổng Giá Trị Dây Hụi
-                </Text>
-                <Heading level={4}>{formatCurrency(totalHuiValue)}</Heading>
-                <Text type="supporting">
-                  Góp {formatCurrency(slotAmount)} / kỳ cho {slotsCount} chân
-                </Text>
-              </VStack>
-            </Card>
-
-            <Card variant="muted">
-              <VStack gap={1}>
-                <HStack gap={2} vAlign="center">
-                  <Text type="supporting" color="secondary">
-                    Người Hốt Chót (Lãi Cao Nhất)
-                  </Text>
-                  <Badge label="Lời To" variant="success" />
-                </HStack>
-                <Heading level={4}>
-                  +{formatCurrency(lastWinnerNetProfit)}
-                </Heading>
-                <Text type="supporting">
-                  Đóng {formatCurrency(lastWinnerTotalPaid)} ➔ Lĩnh{' '}
-                  {formatCurrency(lastWinnerReceive)}
-                </Text>
-              </VStack>
-            </Card>
-
-            <Card variant="muted">
-              <VStack gap={1}>
-                <HStack gap={2} vAlign="center">
-                  <Text type="supporting" color="secondary">
-                    Người Hốt Đầu (Kỳ 1 - Cần Vốn)
-                  </Text>
-                  <Badge label="Chịu Lãi" variant="warning" />
-                </HStack>
-                <Heading level={4}>
-                  -{formatCurrency(firstWinnerNetCost)}
-                </Heading>
-                <Text type="supporting">
-                  Lĩnh {formatCurrency(firstWinnerReceive)} ➔ Phải đóng{' '}
-                  {formatCurrency(firstWinnerTotalPaid)}
-                </Text>
-              </VStack>
-            </Card>
-          </Grid>
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Icon icon={InformationCircleIcon} size="sm" />
+            <Text type="supporting" color="secondary">
+              Công thức người lụm kỳ t: <Text weight="semibold">LỤM + [ (t - 1) × t / 2 ] × Δ</Text> • Người đã lụm đóng bù: <Text weight="semibold">-(t - k) × Δ</Text>
+            </Text>
+          </HStack>
         </VStack>
       </Card>
+
+      {/* HIỂN THỊ MA TRẬN BẢNG HỤI TRỰC QUAN */}
+      <HuiMatrixTable
+        matrix={matrix}
+        title="Ma Trận Kết Quả Dự Toán Dây Hụi"
+        subtitle={`Dây ${matrix.totalMembers} thành viên từ ${matrix.months[0]} đến ${matrix.months[matrix.months.length - 1]}`}
+      />
     </VStack>
   );
 }

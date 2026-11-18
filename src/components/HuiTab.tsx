@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { VStack, HStack } from '@astryxdesign/core/Layout';
 import { Heading, Text } from '@astryxdesign/core/Text';
@@ -13,6 +13,8 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { Table, TableColumn, proportional, pixel } from '@astryxdesign/core/Table';
+import { Avatar } from '@astryxdesign/core/Avatar';
+import { FileInput } from '@astryxdesign/core/FileInput';
 import { Icon } from '@astryxdesign/core/Icon';
 import {
   SparklesIcon,
@@ -21,14 +23,18 @@ import {
   XMarkIcon,
   UserGroupIcon,
   CalendarDaysIcon,
+  QrCodeIcon,
+  ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
 import { HuiGroup, HuiPeriodPayment } from '@/types';
 import {
   calculateNewHuiPeriod,
   calculateSlotStatistics,
+  generateProgressiveMatrix,
   formatCurrency,
   SlotStatistic,
 } from '@/lib/huiCalculator';
+import { HuiMatrixTable } from '@/components/HuiMatrixTable';
 
 interface HuiTabProps {
   huiGroups: HuiGroup[];
@@ -40,23 +46,44 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     huiGroups[0]?.id || ''
   );
 
+  // State File Input và QR Modal
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+  const [isQrUploadMode, setIsQrUploadMode] = useState(false);
+  const [selectedQrUrl, setSelectedQrUrl] = useState<string>('');
+  const [selectedQrName, setSelectedQrName] = useState<string>('');
+  const [targetUploadSlotId, setTargetUploadSlotId] = useState<string>('');
+
   // State Khui Hụi Dialog
   const [isKhuiDialogOpen, setIsKhuiDialogOpen] = useState(false);
   const [winnerSlotId, setWinnerSlotId] = useState<string>('');
-  const [bidAmountStr, setBidAmountStr] = useState<string>('300000');
+  const [bidAmountStr, setBidAmountStr] = useState<string>('0');
   const [khuiDateStr, setKhuiDateStr] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
 
   // State Tạo Dây Hụi Mới Dialog
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newHuiName, setNewHuiName] = useState('');
-  const [newHuiAmount, setNewHuiAmount] = useState('2000000');
-  const [newHuiSlotsCount, setNewHuiSlotsCount] = useState('10');
+  const [newHuiName, setNewHuiName] = useState('Dây Hụi Lũy Tiến Tháng 4');
+  const [newHuiAmount, setNewHuiAmount] = useState('5000000');
+  const [newHuiMembers, setNewHuiMembers] = useState('KM, BẢO, CƯỜNG, TRUNG, XUÂN, BÌNH');
+  const [newHuiStep, setNewHuiStep] = useState('30');
+  const [newHuiStartMonth, setNewHuiStartMonth] = useState('4');
   const [newHuiCycle, setNewHuiCycle] = useState<'MONTHLY' | 'WEEKLY' | 'DAILY'>('MONTHLY');
 
   const currentHui =
     huiGroups.find((h) => h.id === selectedHuiId) || huiGroups[0];
+
+  // Tính ma trận bảng hụi của dây đang xem
+  const huiMatrix = useMemo(() => {
+    if (!currentHui) return null;
+    const names = currentHui.slots.map((s) => s.memberName);
+    return generateProgressiveMatrix(
+      names,
+      currentHui.startMonth || 4,
+      currentHui.interestStep || 30,
+      currentHui.amountPerSlot
+    );
+  }, [currentHui]);
 
   // Tạo dây hụi mới
   const handleCreateHuiGroup = () => {
@@ -64,28 +91,33 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       alert('Vui lòng nhập tên dây hụi');
       return;
     }
-    const amount = parseInt(newHuiAmount.replace(/\D/g, ''), 10) || 2000000;
-    const slotsCount = parseInt(newHuiSlotsCount, 10) || 10;
+    const rawNames = newHuiMembers
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const names = rawNames.length > 0 ? rawNames : ['KM', 'BẢO', 'CƯỜNG', 'TRUNG', 'XUÂN', 'BÌNH'];
+    const amount = parseInt(newHuiAmount.replace(/\D/g, ''), 10) || 5000000;
+    const step = parseInt(newHuiStep.replace(/\D/g, ''), 10) || 30;
+    const startMonth = parseInt(newHuiStartMonth, 10) || 4;
 
     const newId = 'hui_' + Date.now();
-    const slots = [];
-    for (let i = 1; i <= slotsCount; i++) {
-      slots.push({
-        id: `slot_${newId}_${i}`,
-        huiId: newId,
-        slotNumber: i,
-        memberName: i === 1 ? 'Chủ Hụi (Chân 1)' : `Hụi viên chân ${i}`,
-        isDead: false,
-      });
-    }
+    const slots = names.map((name, i) => ({
+      id: `slot_${newId}_${i + 1}`,
+      huiId: newId,
+      slotNumber: i + 1,
+      memberName: name,
+      isDead: false,
+    }));
 
     const newGroup: HuiGroup = {
       id: newId,
       name: newHuiName,
       amountPerSlot: amount,
-      totalSlots: slotsCount,
+      totalSlots: names.length,
       cycle: newHuiCycle,
       commissionPerPeriod: 0,
+      interestStep: step,
+      startMonth,
       startDate: new Date().toISOString().split('T')[0],
       status: 'ACTIVE',
       slots,
@@ -95,7 +127,40 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     onUpdateHuiGroups([...huiGroups, newGroup]);
     setSelectedHuiId(newId);
     setIsCreateDialogOpen(false);
-    setNewHuiName('');
+  };
+
+  // Lưu mã QR nhận tiền
+  const handleSaveQrCode = (base64: string) => {
+    if (!currentHui) return;
+    const targetSlot = targetUploadSlotId || (latestPeriod ? latestPeriod.winnerSlotId : '');
+
+    const updatedSlots = currentHui.slots.map((s) => {
+      if (s.id === targetSlot) {
+        return { ...s, qrCodeUrl: base64 };
+      }
+      return s;
+    });
+
+    const updatedPeriods = (currentHui.periods || []).map((p) => {
+      if (p.winnerSlotId === targetSlot) {
+        return { ...p, winnerQrCode: base64 };
+      }
+      return p;
+    });
+
+    const updatedHui: HuiGroup = {
+      ...currentHui,
+      slots: updatedSlots,
+      periods: updatedPeriods,
+    };
+
+    const newHuiGroups = huiGroups.map((h) =>
+      h.id === currentHui.id ? updatedHui : h
+    );
+    onUpdateHuiGroups(newHuiGroups);
+
+    setSelectedQrUrl(base64);
+    setIsQrUploadMode(false);
   };
 
   // Dialog tạo dây hụi tái sử dụng
@@ -103,12 +168,12 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     <Dialog
       isOpen={isCreateDialogOpen}
       onOpenChange={setIsCreateDialogOpen}
-      width={500}
+      width={560}
       purpose="form"
     >
       <DialogHeader
         title="Tạo Dây Hụi Mới"
-        subtitle="Khởi tạo dây hụi xoay vòng cho nhóm chơi"
+        subtitle="Khởi tạo dây hụi xoay vòng theo mô hình lũy tiến bậc thang"
         onOpenChange={setIsCreateDialogOpen}
       />
       <VStack gap={4} padding={4}>
@@ -116,22 +181,38 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           label="Tên Dây Hụi"
           value={newHuiName}
           onChange={setNewHuiName}
-          placeholder="Vd: Dây 5 Triệu Tháng - Bạn Thân"
+          placeholder="Vd: Dây Hụi Lũy Tiến Tháng 4"
         />
 
         <TextInput
           label="Tiền Góp Mỗi Chân (VNĐ)"
           value={newHuiAmount}
           onChange={setNewHuiAmount}
-          placeholder="2000000"
+          placeholder="5000000"
         />
 
         <TextInput
-          label="Tổng Số Chân (Kỳ)"
-          value={newHuiSlotsCount}
-          onChange={setNewHuiSlotsCount}
-          placeholder="10"
+          label="Danh Sách Người Chơi (Theo Thứ Tự LỤM, cách nhau dấu phẩy)"
+          value={newHuiMembers}
+          onChange={setNewHuiMembers}
+          placeholder="KM, BẢO, CƯỜNG, TRUNG, XUÂN, BÌNH"
         />
+
+        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+          <TextInput
+            label="Bước Nhảy Lãi Lũy Tiến (Δ)"
+            value={newHuiStep}
+            onChange={setNewHuiStep}
+            placeholder="30"
+          />
+
+          <TextInput
+            label="Tháng Bắt Đầu (1 - 12)"
+            value={newHuiStartMonth}
+            onChange={setNewHuiStartMonth}
+            placeholder="4"
+          />
+        </Grid>
 
         <Selector
           label="Chu Kỳ Mở"
@@ -346,6 +427,48 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       },
       width: proportional(1.5),
     },
+    {
+      key: 'qrCode',
+      header: 'Mã QR Nhận Tiền',
+      renderCell: (s: SlotStatistic) => {
+        const slot = currentHui.slots.find((slotItem) => slotItem.id === s.slotId);
+        const hasQr = !!slot?.qrCodeUrl;
+        return (
+          <HStack gap={1} vAlign="center">
+            {hasQr ? (
+              <Button
+                label="Xem QR"
+                variant="primary"
+                size="sm"
+                icon={<Icon icon={QrCodeIcon} size="sm" />}
+                onClick={() => {
+                  setSelectedQrUrl(slot!.qrCodeUrl!);
+                  setSelectedQrName(s.memberName);
+                  setTargetUploadSlotId(s.slotId);
+                  setIsQrUploadMode(false);
+                  setIsQrModalOpen(true);
+                }}
+              />
+            ) : (
+              <Button
+                label="Tải QR"
+                variant="ghost"
+                size="sm"
+                icon={<Icon icon={ArrowUpTrayIcon} size="sm" />}
+                onClick={() => {
+                  setSelectedQrUrl('');
+                  setSelectedQrName(s.memberName);
+                  setTargetUploadSlotId(s.slotId);
+                  setIsQrUploadMode(true);
+                  setIsQrModalOpen(true);
+                }}
+              />
+            )}
+          </HStack>
+        );
+      },
+      width: pixel(130),
+    },
   ];
 
   // Cấu hình cột Table thu tiền kỳ mới nhất
@@ -505,42 +628,99 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
         </Card>
       </Grid>
 
-      {/* Bảng Điểm Danh Đóng Tiền Kỳ Mới Nhất (nếu có kỳ đã khui) */}
-      {latestPeriod && (
-        <Card>
-          <VStack gap={4}>
-            <HStack hAlign="between" vAlign="center" wrap="wrap">
-              <VStack gap={1}>
-                <HStack gap={2} vAlign="center">
-                  <Heading level={4}>
-                    Điểm Danh Thu Tiền Kỳ {latestPeriod.periodNumber} ({latestPeriod.openDate})
-                  </Heading>
-                  <Badge label={`Hốt: ${latestPeriod.winnerName}`} variant="info" />
-                </HStack>
-                <Text type="supporting" color="secondary">
-                  Mức thăm kêu:{' '}
-                  <Text weight="semibold">
-                    {formatCurrency(latestPeriod.bidAmount)}
-                  </Text>{' '}
-                  | Thực lĩnh người hốt:{' '}
-                  <Text weight="semibold">
-                    {formatCurrency(latestPeriod.actualReceived)}
-                  </Text>
-                </Text>
-              </VStack>
-            </HStack>
-
-            <Table<HuiPeriodPayment>
-              data={latestPeriod.payments}
-              columns={paymentColumns}
-              idKey="slotId"
-              density="compact"
-              dividers="rows"
-              hasHover
-            />
-          </VStack>
-        </Card>
+      {/* Bảng Ma Trận Lũy Tiến Bậc Thang chuẩn theo mô hình Excel */}
+      {huiMatrix && (
+        <HuiMatrixTable
+          matrix={huiMatrix}
+          title={`Bảng Ma Trận Đóng Hụi Lũy Tiến - ${currentHui.name}`}
+          subtitle={`Bước nhảy lãi Δ = ${currentHui.interestStep || 30} • Bắt đầu từ Tháng ${currentHui.startMonth || 4}`}
+        />
       )}
+
+      {/* Bảng Điểm Danh Đóng Tiền Kỳ Mới Nhất (nếu có kỳ đã khui) */}
+      {latestPeriod && (() => {
+        const winnerSlot = currentHui.slots.find((s) => s.id === latestPeriod.winnerSlotId);
+        const winnerQr = latestPeriod.winnerQrCode || winnerSlot?.qrCodeUrl;
+
+        return (
+          <Card>
+            <VStack gap={4}>
+              <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
+                <VStack gap={1}>
+                  <HStack gap={2} vAlign="center">
+                    <Heading level={4}>
+                      Điểm Danh Thu Tiền Kỳ {latestPeriod.periodNumber} ({latestPeriod.openDate})
+                    </Heading>
+                    <Badge label={`LỤM: ${latestPeriod.winnerName}`} variant="success" />
+                  </HStack>
+                  <Text type="supporting" color="secondary">
+                    Thực lĩnh kỳ này:{' '}
+                    <Text weight="semibold">
+                      {formatCurrency(latestPeriod.actualReceived)}
+                    </Text>
+                  </Text>
+                </VStack>
+
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  {winnerQr ? (
+                    <>
+                      <Button
+                        label="📱 Quét Mã QR Nhận Tiền"
+                        variant="primary"
+                        size="md"
+                        icon={<Icon icon={QrCodeIcon} size="sm" />}
+                        onClick={() => {
+                          setSelectedQrUrl(winnerQr);
+                          setSelectedQrName(latestPeriod.winnerName);
+                          setTargetUploadSlotId(latestPeriod.winnerSlotId);
+                          setIsQrUploadMode(false);
+                          setIsQrModalOpen(true);
+                        }}
+                      />
+                      <Button
+                        label="Đổi QR"
+                        variant="ghost"
+                        size="md"
+                        icon={<Icon icon={ArrowUpTrayIcon} size="sm" />}
+                        onClick={() => {
+                          setSelectedQrUrl(winnerQr);
+                          setSelectedQrName(latestPeriod.winnerName);
+                          setTargetUploadSlotId(latestPeriod.winnerSlotId);
+                          setIsQrUploadMode(true);
+                          setIsQrModalOpen(true);
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <Button
+                      label="📷 Tải Lên Mã QR Nhận Tiền"
+                      variant="primary"
+                      size="md"
+                      icon={<Icon icon={ArrowUpTrayIcon} size="sm" />}
+                      onClick={() => {
+                        setSelectedQrUrl('');
+                        setSelectedQrName(latestPeriod.winnerName);
+                        setTargetUploadSlotId(latestPeriod.winnerSlotId);
+                        setIsQrUploadMode(true);
+                        setIsQrModalOpen(true);
+                      }}
+                    />
+                  )}
+                </HStack>
+              </HStack>
+
+              <Table<HuiPeriodPayment>
+                data={latestPeriod.payments}
+                columns={paymentColumns}
+                idKey="slotId"
+                density="compact"
+                dividers="rows"
+                hasHover
+              />
+            </VStack>
+          </Card>
+        );
+      })()}
 
       {/* Bảng Danh Sách Chân Hụi & Thống Kê Lãi/Lỗ Từng Thành Viên */}
       <Card>
@@ -625,6 +805,95 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
 
       {/* DIALOG TẠO DÂY HỤI MỚI */}
       {renderCreateDialog()}
+
+      {/* DIALOG XEM & TẢI LÊN MÃ QR NHẬN TIỀN */}
+      <Dialog
+        isOpen={isQrModalOpen}
+        onOpenChange={setIsQrModalOpen}
+        width={440}
+        purpose="form"
+      >
+        <DialogHeader
+          title={`Mã QR Nhận Tiền - ${selectedQrName}`}
+          subtitle="Quét mã ngân hàng hoặc MoMo để chuyển tiền vào tài khoản người nhận hụi"
+          onOpenChange={setIsQrModalOpen}
+        />
+        <VStack gap={4} padding={4} hAlign="center">
+          {isQrUploadMode ? (
+            <VStack gap={3} width="100%">
+              <FileInput
+                label={`Tải lên hình ảnh mã QR của ${selectedQrName}`}
+                description="Hỗ trợ ảnh QR VietQR, MoMo, ZaloPay hoặc hình chụp mã tài khoản"
+                mode="dropzone"
+                accept="image/*"
+                value={null}
+                onChange={(file) => {
+                  const selectedFile = Array.isArray(file) ? file[0] : file;
+                  if (!selectedFile) return;
+                  const reader = new FileReader();
+                  reader.onload = () => {
+                    const base64 = reader.result as string;
+                    handleSaveQrCode(base64);
+                  };
+                  reader.readAsDataURL(selectedFile);
+                }}
+              />
+              {selectedQrUrl && (
+                <HStack hAlign="end">
+                  <Button
+                    label="Quay lại xem QR hiện tại"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsQrUploadMode(false)}
+                  />
+                </HStack>
+              )}
+            </VStack>
+          ) : (
+            <VStack gap={3} hAlign="center">
+              {selectedQrUrl ? (
+                <Card variant="muted">
+                  <VStack padding={3} hAlign="center" vAlign="center">
+                    <Avatar
+                      src={selectedQrUrl}
+                      size={180}
+                      shape="rounded"
+                      name={selectedQrName}
+                      alt={`Mã QR ${selectedQrName}`}
+                      tooltip={false}
+                    />
+                  </VStack>
+                </Card>
+              ) : (
+                <Text color="secondary">Chưa có mã QR nào</Text>
+              )}
+              <Text type="supporting" color="secondary">
+                Vui lòng kiểm tra đúng tên người nhận {selectedQrName} trước khi bấm xác nhận chuyển tiền.
+              </Text>
+              <HStack gap={2}>
+                <Button
+                  label="Tải Ảnh QR Mới"
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon icon={ArrowUpTrayIcon} size="sm" />}
+                  onClick={() => setIsQrUploadMode(true)}
+                />
+              </HStack>
+            </VStack>
+          )}
+
+          <Divider />
+
+          <HStack gap={2} hAlign="end" width="100%">
+            <Button
+              label="Đóng"
+              variant="secondary"
+              size="md"
+              onClick={() => setIsQrModalOpen(false)}
+            />
+          </HStack>
+        </VStack>
+      </Dialog>
     </VStack>
   );
 }

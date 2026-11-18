@@ -12,6 +12,10 @@ export interface HuiSlot extends Record<string, unknown> {
   isDead: boolean; // True: đã hốt/bốc rồi (chân chết), False: chưa hốt (chân sống)
   wonPeriod?: number; // Đã hốt ở kỳ nào
   bidAmount?: number; // Số tiền bỏ thăm/kêu hụi khi hốt
+  qrCodeUrl?: string; // Mã QR chuyển khoản ngân hàng của thành viên
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
   note?: string;
   [key: string]: unknown;
 }
@@ -33,6 +37,7 @@ export interface HuiPeriod extends Record<string, unknown> {
   openDate: string; // Ngày khui họ
   winnerSlotId: string; // Chân hốt kỳ này
   winnerName: string;
+  winnerQrCode?: string; // Mã QR nhận tiền của người hốt kỳ này
   bidAmount: number; // Mức thăm / kêu hụi (tiền trả lãi)
   totalCollected: number; // Tổng tiền thu được từ các chân khác
   commissionFee: number; // Tiền xâu chủ họ lấy
@@ -42,13 +47,46 @@ export interface HuiPeriod extends Record<string, unknown> {
   [key: string]: unknown;
 }
 
+export interface ProgressiveHuiCell extends Record<string, unknown> {
+  monthIndex: number;
+  monthName: string;
+  type: 'WON' | 'DEAD' | 'ALIVE';
+  label: string; // "LỤM", "LỤM+30", "-30", "—"
+  interestAmount: number; // +30, -60, 0
+  amountToPayOrReceive: number; // Số tiền cụ thể
+  isPaid?: boolean;
+  [key: string]: unknown;
+}
+
+export interface ProgressiveHuiMemberRow extends Record<string, unknown> {
+  memberId: string;
+  memberName: string;
+  turnIndex: number; // 1-based (Kỳ người đó được lụm)
+  cells: ProgressiveHuiCell[];
+  wonAmount: number; // Tiền nhận khi LỤM
+  totalInterestPaid: number; // Tổng lãi đã trả sau khi lụm
+  netProfit: number; // Lãi/Lỗ ròng
+  [key: string]: unknown;
+}
+
+export interface ProgressiveHuiMatrix extends Record<string, unknown> {
+  months: string[];
+  members: ProgressiveHuiMemberRow[];
+  interestStep: number;
+  baseAmount: number;
+  totalMembers: number;
+  [key: string]: unknown;
+}
+
 export interface HuiGroup extends Record<string, unknown> {
   id: string;
   name: string; // Vd: Dây 5 triệu tháng - Nhóm Bạn Thân
   amountPerSlot: number; // Tiền chân gốc (Vd: 2.000.000 đ)
   totalSlots: number; // Tổng số chân (Vd: 12 chân = 12 kỳ)
   cycle: HuiCycle; // Chu kỳ mở
-  commissionPerPeriod: number; // Tiền xâu mỗi kỳ (Vd: 500.000 đ hoặc tính theo đợt)
+  commissionPerPeriod: number; // Tiền xâu mỗi kỳ (đã bỏ hoặc = 0)
+  interestStep?: number; // Bước nhảy lãi lũy tiến (Vd: 30 hoặc 30.000 đ)
+  startMonth?: number; // Tháng bắt đầu (Vd: 4)
   startDate: string; // Ngày bắt đầu
   status: 'ACTIVE' | 'COMPLETED';
   slots: HuiSlot[]; // Danh sách các chân

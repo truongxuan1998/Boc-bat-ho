@@ -13,7 +13,8 @@ import {
   loadSystemData,
   loadSystemDataWithCloud,
   saveSystemData,
-  initialSampleData,
+  clearAllData,
+  emptySystemData,
 } from '@/lib/storage';
 import { subscribeToRealtimeChanges } from '@/lib/supabaseClient';
 import { HeaderNav } from '@/components/HeaderNav';
@@ -25,7 +26,7 @@ import { ZaloExportModal } from '@/components/ZaloExportModal';
 import { SupabaseConfigModal } from '@/components/SupabaseConfigModal';
 
 export default function Home() {
-  const [data, setData] = useState<SystemData>(initialSampleData);
+  const [data, setData] = useState<SystemData>(emptySystemData);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
@@ -88,11 +89,12 @@ export default function Home() {
     saveSystemData(updated);
   };
 
-  // Khôi phục dữ liệu mẫu
+  // Xóa trắng toàn bộ dữ liệu
   const handleResetData = () => {
-    if (confirm('Bạn có chắc muốn khôi phục lại dữ liệu mẫu ban đầu?')) {
-      setData(initialSampleData);
-      saveSystemData(initialSampleData);
+    if (confirm('Bạn có chắc muốn xóa trắng toàn bộ dữ liệu để bắt đầu mới?')) {
+      setData(emptySystemData);
+      clearAllData();
+      saveSystemData(emptySystemData);
     }
   };
 

@@ -218,93 +218,114 @@ export function BatHoTab({ batHoLoans, onUpdateBatHoLoans }: BatHoTabProps) {
         </HStack>
       </Card>
 
-      {/* Sổ Tích Kê Ngày Của Khách Được Chọn */}
-      {currentLoan && currentStats && (
+      {/* Danh sách Bát Họ hoặc Trạng thái trống */}
+      {batHoLoans.length === 0 ? (
         <Card>
-          <VStack gap={4}>
-            <HStack hAlign="between" vAlign="center" wrap="wrap">
-              <VStack gap={1}>
-                <HStack gap={2} vAlign="center">
-                  <Heading level={4}>
-                    Sổ Tích Kê: {currentLoan.customerName}
-                  </Heading>
-                  <Badge
-                    label={`${currentStats.paidDays}/${currentLoan.totalDays} ngày`}
-                    variant={currentStats.progressPercent === 100 ? 'success' : 'info'}
-                  />
-                  {currentStats.lateDays > 0 && (
-                    <Badge
-                      label={`Trễ ${currentStats.lateDays} ngày`}
-                      variant="error"
-                    />
-                  )}
-                </HStack>
-                <Text type="supporting" color="secondary">
-                  Bát: {formatCurrency(currentLoan.totalAmount)} | Cầm về:{' '}
-                  {formatCurrency(currentLoan.receivedAmount)} (Cắt phế{' '}
-                  {formatCurrency(currentLoan.cutFee)}) | Mỗi ngày đóng:{' '}
-                  <Text weight="semibold">
-                    {formatCurrency(currentLoan.dailyAmount)}
-                  </Text>
-                </Text>
-              </VStack>
-
-              <HStack gap={4} vAlign="center">
-                <VStack gap={0} hAlign="end">
-                  <Text type="supporting" color="secondary">
-                    Đã Thu / Còn Nợ
-                  </Text>
-                  <Text weight="semibold">
-                    {formatCurrency(currentStats.paidAmount)} /{' '}
-                    {formatCurrency(currentStats.remainingAmount)}
-                  </Text>
-                </VStack>
-              </HStack>
-            </HStack>
-
-            <Divider />
-
-            {/* Lưới 50 ngày tích kê bấm trực tiếp */}
-            <VStack gap={2}>
-              <Text weight="semibold">
-                Bấm vào từng ngày để điểm danh đóng tiền:
-              </Text>
-              <Grid columns={{ minWidth: 90, repeat: 'fit' }} gap={2}>
-                {currentLoan.payments.map((p) => (
-                  <Button
-                    key={p.dayIndex}
-                    label={`N${p.dayIndex}: ${p.isPaid ? 'Đã thu' : 'Chưa'}`}
-                    variant={p.isPaid ? 'primary' : 'ghost'}
-                    size="sm"
-                    icon={
-                      <Icon
-                        icon={p.isPaid ? CheckCircleIcon : ClockIcon}
-                        size="sm"
-                      />
-                    }
-                    onClick={() => handleToggleDay(p.dayIndex)}
-                  />
-                ))}
-              </Grid>
-            </VStack>
+          <VStack gap={4} hAlign="center" padding={6}>
+            <Heading level={4}>Chưa có hợp đồng Bát Họ nào</Heading>
+            <Text type="supporting" color="secondary">
+              Nhấn nút bên dưới để tạo hợp đồng bốc bát họ đầu tiên (10 ăn 8, 20 ăn 16...)
+            </Text>
+            <Button
+              label="Thêm Bát Họ Đầu Tiên"
+              variant="primary"
+              size="md"
+              icon={<Icon icon={PlusIcon} size="sm" />}
+              onClick={() => setIsCreateOpen(true)}
+            />
           </VStack>
         </Card>
-      )}
+      ) : (
+        <>
+          {/* Sổ Tích Kê Ngày Của Khách Được Chọn */}
+          {currentLoan && currentStats && (
+            <Card>
+              <VStack gap={4}>
+                <HStack hAlign="between" vAlign="center" wrap="wrap">
+                  <VStack gap={1}>
+                    <HStack gap={2} vAlign="center">
+                      <Heading level={4}>
+                        Sổ Tích Kê: {currentLoan.customerName}
+                      </Heading>
+                      <Badge
+                        label={`${currentStats.paidDays}/${currentLoan.totalDays} ngày`}
+                        variant={currentStats.progressPercent === 100 ? 'success' : 'info'}
+                      />
+                      {currentStats.lateDays > 0 && (
+                        <Badge
+                          label={`Trễ ${currentStats.lateDays} ngày`}
+                          variant="error"
+                        />
+                      )}
+                    </HStack>
+                    <Text type="supporting" color="secondary">
+                      Bát: {formatCurrency(currentLoan.totalAmount)} | Cầm về:{' '}
+                      {formatCurrency(currentLoan.receivedAmount)} (Cắt phế{' '}
+                      {formatCurrency(currentLoan.cutFee)}) | Mỗi ngày đóng:{' '}
+                      <Text weight="semibold">
+                        {formatCurrency(currentLoan.dailyAmount)}
+                      </Text>
+                    </Text>
+                  </VStack>
 
-      {/* Bảng Danh Sách Tất Cả Các Hợp Đồng Bát Họ */}
-      <Card>
-        <VStack gap={4}>
-          <Heading level={4}>Danh Sách Khách Bốc Bát Họ</Heading>
-          <Table<BatHoLoan>
-            data={batHoLoans}
-            columns={loanColumns}
-            idKey="id"
-            density="compact"
-            dividers="rows"
-            hasHover
-          />
-        </VStack>
-      </Card>
+                  <HStack gap={4} vAlign="center">
+                    <VStack gap={0} hAlign="end">
+                      <Text type="supporting" color="secondary">
+                        Đã Thu / Còn Nợ
+                      </Text>
+                      <Text weight="semibold">
+                        {formatCurrency(currentStats.paidAmount)} /{' '}
+                        {formatCurrency(currentStats.remainingAmount)}
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </HStack>
+
+                <Divider />
+
+                {/* Lưới 50 ngày tích kê bấm trực tiếp */}
+                <VStack gap={2}>
+                  <Text weight="semibold">
+                    Bấm vào từng ngày để điểm danh đóng tiền:
+                  </Text>
+                  <Grid columns={{ minWidth: 90, repeat: 'fit' }} gap={2}>
+                    {currentLoan.payments.map((p) => (
+                      <Button
+                        key={p.dayIndex}
+                        label={`N${p.dayIndex}: ${p.isPaid ? 'Đã thu' : 'Chưa'}`}
+                        variant={p.isPaid ? 'primary' : 'ghost'}
+                        size="sm"
+                        icon={
+                          <Icon
+                            icon={p.isPaid ? CheckCircleIcon : ClockIcon}
+                            size="sm"
+                          />
+                        }
+                        onClick={() => handleToggleDay(p.dayIndex)}
+                      />
+                    ))}
+                  </Grid>
+                </VStack>
+              </VStack>
+            </Card>
+          )}
+
+          {/* Bảng Danh Sách Tất Cả Các Hợp Đồng Bát Họ */}
+          <Card>
+            <VStack gap={4}>
+              <Heading level={4}>Danh Sách Khách Bốc Bát Họ</Heading>
+              <Table<BatHoLoan>
+                data={batHoLoans}
+                columns={loanColumns}
+                idKey="id"
+                density="compact"
+                dividers="rows"
+                hasHover
+              />
+            </VStack>
+          </Card>
+        </>
+      )}
 
       {/* DIALOG THÊM BÁT HỌ MỚI */}
       <Dialog

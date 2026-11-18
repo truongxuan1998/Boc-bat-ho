@@ -59,20 +59,101 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   const currentHui =
     huiGroups.find((h) => h.id === selectedHuiId) || huiGroups[0];
 
-  if (!currentHui) {
-    return (
-      <Card>
-        <VStack gap={4} hAlign="center" padding={6}>
-          <Heading level={4}>Chưa có dây hụi nào</Heading>
+  // Dialog tạo dây hụi tái sử dụng
+  const renderCreateDialog = () => (
+    <Dialog
+      isOpen={isCreateDialogOpen}
+      onOpenChange={setIsCreateDialogOpen}
+      width={500}
+      purpose="form"
+    >
+      <DialogHeader
+        title="Tạo Dây Hụi Mới"
+        subtitle="Khởi tạo dây hụi xoay vòng cho nhóm chơi"
+        onOpenChange={setIsCreateDialogOpen}
+      />
+      <VStack gap={4} padding={4}>
+        <TextInput
+          label="Tên Dây Hụi"
+          value={newHuiName}
+          onChange={setNewHuiName}
+          placeholder="Vd: Dây 5 Triệu Tháng - Bạn Thân"
+        />
+
+        <TextInput
+          label="Tiền Góp Mỗi Chân (VNĐ)"
+          value={newHuiAmount}
+          onChange={setNewHuiAmount}
+          placeholder="2000000"
+        />
+
+        <TextInput
+          label="Tổng Số Chân (Kỳ)"
+          value={newHuiSlotsCount}
+          onChange={setNewHuiSlotsCount}
+          placeholder="10"
+        />
+
+        <TextInput
+          label="Tiền Xâu Chủ Hụi / Kỳ (VNĐ)"
+          value={newHuiCommission}
+          onChange={setNewHuiCommission}
+          placeholder="300000"
+        />
+
+        <Selector
+          label="Chu Kỳ Mở"
+          value={newHuiCycle}
+          options={[
+            { value: 'MONTHLY', label: 'Hàng Tháng (30 ngày)' },
+            { value: 'WEEKLY', label: 'Hàng Tuần (7 ngày)' },
+            { value: 'DAILY', label: 'Hàng Ngày' },
+          ]}
+          onChange={(v) => setNewHuiCycle(v as 'MONTHLY' | 'WEEKLY' | 'DAILY')}
+          width="100%"
+        />
+
+        <Divider />
+
+        <HStack hAlign="end" gap={2}>
           <Button
-            label="Tạo Dây Hụi Đầu Tiên"
+            label="Hủy"
+            variant="ghost"
+            size="md"
+            onClick={() => setIsCreateDialogOpen(false)}
+          />
+          <Button
+            label="Tạo Dây Hụi"
             variant="primary"
             size="md"
             icon={<Icon icon={PlusIcon} size="sm" />}
-            onClick={() => setIsCreateDialogOpen(true)}
+            onClick={handleCreateHuiGroup}
           />
-        </VStack>
-      </Card>
+        </HStack>
+      </VStack>
+    </Dialog>
+  );
+
+  if (!currentHui) {
+    return (
+      <VStack gap={4}>
+        <Card>
+          <VStack gap={4} hAlign="center" padding={6}>
+            <Heading level={4}>Chưa có dây hụi nào</Heading>
+            <Text type="supporting" color="secondary">
+              Nhấn nút bên dưới để tạo dây hụi đầu tiên cho nhóm chơi của bạn
+            </Text>
+            <Button
+              label="Tạo Dây Hụi Đầu Tiên"
+              variant="primary"
+              size="md"
+              icon={<Icon icon={PlusIcon} size="sm" />}
+              onClick={() => setIsCreateDialogOpen(true)}
+            />
+          </VStack>
+        </Card>
+        {renderCreateDialog()}
+      </VStack>
     );
   }
 
@@ -553,77 +634,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       </Dialog>
 
       {/* DIALOG TẠO DÂY HỤI MỚI */}
-      <Dialog
-        isOpen={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        width={500}
-        purpose="form"
-      >
-        <DialogHeader
-          title="Tạo Dây Hụi Mới"
-          subtitle="Khởi tạo dây hụi xoay vòng cho nhóm chơi"
-          onOpenChange={setIsCreateDialogOpen}
-        />
-        <VStack gap={4} padding={4}>
-          <TextInput
-            label="Tên Dây Hụi"
-            value={newHuiName}
-            onChange={setNewHuiName}
-            placeholder="Vd: Dây 5 Triệu Tháng - Bạn Thân"
-          />
-
-          <TextInput
-            label="Tiền Góp Mỗi Chân (VNĐ)"
-            value={newHuiAmount}
-            onChange={setNewHuiAmount}
-            placeholder="2000000"
-          />
-
-          <TextInput
-            label="Tổng Số Chân (Kỳ)"
-            value={newHuiSlotsCount}
-            onChange={setNewHuiSlotsCount}
-            placeholder="10"
-          />
-
-          <TextInput
-            label="Tiền Xâu Chủ Hụi / Kỳ (VNĐ)"
-            value={newHuiCommission}
-            onChange={setNewHuiCommission}
-            placeholder="300000"
-          />
-
-          <Selector
-            label="Chu Kỳ Mở"
-            value={newHuiCycle}
-            options={[
-              { value: 'MONTHLY', label: 'Hàng Tháng (30 ngày)' },
-              { value: 'WEEKLY', label: 'Hàng Tuần (7 ngày)' },
-              { value: 'DAILY', label: 'Hàng Ngày' },
-            ]}
-            onChange={(v) => setNewHuiCycle(v as 'MONTHLY' | 'WEEKLY' | 'DAILY')}
-            width="100%"
-          />
-
-          <Divider />
-
-          <HStack hAlign="end" gap={2}>
-            <Button
-              label="Hủy"
-              variant="ghost"
-              size="md"
-              onClick={() => setIsCreateDialogOpen(false)}
-            />
-            <Button
-              label="Tạo Dây Hụi"
-              variant="primary"
-              size="md"
-              icon={<Icon icon={PlusIcon} size="sm" />}
-              onClick={handleCreateHuiGroup}
-            />
-          </HStack>
-        </VStack>
-      </Dialog>
+      {renderCreateDialog()}
     </VStack>
   );
 }

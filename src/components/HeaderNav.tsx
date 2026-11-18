@@ -74,7 +74,7 @@ export function HeaderNav({
             onClick={onExportJson}
           />
           <Button
-            label="Khôi Phục Mẫu"
+            label="Xóa Trắng Dữ Liệu"
             variant="ghost"
             size="md"
             icon={<Icon icon={ArrowPathIcon} size="sm" />}

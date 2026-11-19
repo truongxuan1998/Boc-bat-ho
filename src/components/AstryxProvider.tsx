@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Theme } from '@astryxdesign/core/theme';
+import { LayerProvider } from '@astryxdesign/core/Layer';
 import { InternationalizationProvider } from '@astryxdesign/core/i18n';
 import viVN from '@astryxdesign/core/locales/vi-VN.generated.js';
 import { themes, defaultThemeSlug } from '../astryx-themes';

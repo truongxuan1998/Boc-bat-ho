@@ -14,6 +14,9 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import { Selector } from '@astryxdesign/core/Selector';
 import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { useToast } from '@astryxdesign/core/Toast';
+import { ProgressBar } from '@astryxdesign/core/ProgressBar';
 import { Table, TableColumn, proportional, pixel } from '@astryxdesign/core/Table';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { FileInput } from '@astryxdesign/core/FileInput';
@@ -27,6 +30,8 @@ import {
   ChevronRight,
   Plus,
   Trash2,
+  CalendarPlus,
+  RotateCcw,
 } from 'lucide-react';
 import {
   SparklesIcon,
@@ -60,6 +65,16 @@ function formatNumberDots(val: number): string {
   return new Intl.NumberFormat('vi-VN').format(val);
 }
 
+// Chuyển đổi định dạng ngày YYYY-MM-DD sang chuẩn Việt Nam DD/MM/YYYY
+function formatDateVi(dateStr?: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
 // Danh sách lựa chọn 12 tháng
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -72,9 +87,24 @@ interface HuiTabProps {
 }
 
 export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
+  const toast = useToast();
   const [selectedHuiId, setSelectedHuiId] = useState<string>(
     huiGroups[0]?.id || ''
   );
+
+  // State Modal Xác nhận thu đủ & bàn giao hụi
+  const [isPayoutConfirmOpen, setIsPayoutConfirmOpen] = useState(false);
+  const [pendingPayoutIndex, setPendingPayoutIndex] = useState<number | null>(null);
+  const [unpaidSummary, setUnpaidSummary] = useState<{
+    count: number;
+    names: string;
+  }>({ count: 0, names: '' });
+
+  // State Modal Xác nhận hoàn tác kỳ
+  const [isRevertConfirmOpen, setIsRevertConfirmOpen] = useState(false);
+
+  // State Modal Xác nhận xóa mã QR
+  const [isRemoveQrConfirmOpen, setIsRemoveQrConfirmOpen] = useState(false);
 
   // State File Input và QR Modal
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
@@ -172,7 +202,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   // Xóa thành viên khỏi danh sách tạo dây hụi
   const handleRemoveCreateMember = (idx: number) => {
     if (newHuiMembers.length <= 2) {
-      alert('Dây hụi cần tối thiểu 2 thành viên.');
+      toast({ body: 'Dây hụi cần tối thiểu 2 thành viên.', type: 'error' });
       return;
     }
     setNewHuiMembers((prev) => prev.filter((_, i) => i !== idx));
@@ -221,11 +251,11 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   // Tạo dây hụi mới
   const handleCreateHuiGroup = () => {
     if (!newHuiName.trim()) {
-      alert('Vui lòng nhập tên dây hụi');
+      toast({ body: 'Vui lòng nhập tên dây hụi', type: 'error' });
       return;
     }
     if (newHuiMembers.length < 2) {
-      alert('Vui lòng nhập ít nhất 2 thành viên cho dây hụi');
+      toast({ body: 'Vui lòng nhập ít nhất 2 thành viên cho dây hụi', type: 'error' });
       return;
     }
     const names = newHuiMembers;
@@ -299,12 +329,13 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   // Xóa mã QR cũ của chân hụi
   const handleRemoveQrCode = () => {
     if (!currentHui) return;
+    setIsRemoveQrConfirmOpen(true);
+  };
+
+  const applyRemoveQrCode = () => {
+    if (!currentHui) return;
     const targetSlot =
       targetUploadSlotId || (latestPeriod ? latestPeriod.winnerSlotId : '');
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn xóa mã QR của ${selectedQrName}?`
-    );
-    if (!confirmed) return;
 
     const updatedSlots = currentHui.slots.map((s) => {
       if (s.id === targetSlot) {
@@ -334,8 +365,13 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     onUpdateHuiGroups(newHuiGroups);
 
     setSelectedQrUrl('');
-    setIsQrModalOpen(false);
-    setIsQrUploadMode(false);
+    setIsQrUploadMode(true);
+    setIsRemoveQrConfirmOpen(false);
+
+    toast({
+      body: `Đã xóa mã QR của ${selectedQrName}`,
+      type: 'info',
+    });
   };
 
   // Dialog tạo dây hụi mới đồng bộ chuẩn design system
@@ -625,7 +661,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   // Xử lý Khui Hụi
   const handleConfirmKhuiHui = () => {
     if (!winnerSlotId) {
-      alert('Vui lòng chọn chân hụi hốt kỳ này!');
+      toast({ body: 'Vui lòng chọn chân hụi hốt kỳ này!', type: 'error' });
       return;
     }
     const bidAmount = parseInt(bidAmountStr.replace(/\D/g, ''), 10) || 0;
@@ -666,6 +702,11 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       onUpdateHuiGroups(newHuiGroups);
       setIsKhuiDialogOpen(false);
 
+      toast({
+        body: `🎉 Khui thành công kỳ ${newPeriod.periodNumber} cho chân ${newPeriod.winnerName}!`,
+        type: 'info',
+      });
+
       // Bắn pháo hoa ăn mừng!
       confetti({
         particleCount: 120,
@@ -674,7 +715,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       });
     } catch (e: unknown) {
       const errorMsg = e instanceof Error ? e.message : 'Lỗi không xác định';
-      alert('Lỗi: ' + errorMsg);
+      toast({ body: 'Lỗi: ' + errorMsg, type: 'error' });
     }
   };
 
@@ -723,27 +764,39 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     const targetPeriod = currentHui.periods[periodIndex];
     if (!targetPeriod) return;
 
-    const unpaidMembers = (targetPeriod.payments || []).filter((p) => !p.isPaid);
-    let shouldMarkAllPaid = false;
-
-    // Nếu chuyển từ Chưa bàn giao sang Đã bàn giao nhưng vẫn còn người chưa đóng tiền
-    if (!targetPeriod.isCompleted && unpaidMembers.length > 0) {
-      const unpaidNames = unpaidMembers.map((p) => p.memberName).join(', ');
-      const confirmAll = window.confirm(
-        `Hiện tại vẫn còn ${unpaidMembers.length} chân chưa đóng tiền (${unpaidNames}).\n\nBạn có muốn tự động xác nhận ĐÃ THU ĐỦ TIỀN từ tất cả thành viên và bàn giao đủ tiền cho người nhận không?`
-      );
-      if (!confirmAll) return;
-      shouldMarkAllPaid = true;
+    // Nếu đang là Đã bàn giao -> bấm để hủy hoàn tất
+    if (targetPeriod.isCompleted) {
+      applyPayoutUpdate(periodIndex, false, false);
+      return;
     }
 
-    const nextCompleted = !targetPeriod.isCompleted;
+    // Nếu chuyển sang Đã bàn giao nhưng còn người chưa đóng tiền
+    const unpaidMembers = (targetPeriod.payments || []).filter((p) => !p.isPaid);
+    if (unpaidMembers.length > 0) {
+      setPendingPayoutIndex(periodIndex);
+      setUnpaidSummary({
+        count: unpaidMembers.length,
+        names: unpaidMembers.map((p) => p.memberName).join(', '),
+      });
+      setIsPayoutConfirmOpen(true);
+      return;
+    }
 
+    // Đã thu đủ tiền từ trước
+    applyPayoutUpdate(periodIndex, true, false);
+  };
+
+  const applyPayoutUpdate = (
+    periodIndex: number,
+    isCompleted: boolean,
+    markAllPaid: boolean
+  ) => {
     const updatedPeriods = currentHui.periods.map((period, idx) => {
       if (idx !== periodIndex) return period;
       return {
         ...period,
-        isCompleted: nextCompleted,
-        payments: shouldMarkAllPaid
+        isCompleted,
+        payments: markAllPaid
           ? period.payments.map((p) => ({
               ...p,
               isPaid: true,
@@ -762,16 +815,24 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       h.id === currentHui.id ? updatedHui : h
     );
     onUpdateHuiGroups(newHuiGroups);
+
+    toast({
+      body: isCompleted
+        ? '✓ Đã bàn giao tiền thành công cho người nhận!'
+        : 'Đã hoàn tác trạng thái bàn giao tiền',
+      type: 'info',
+    });
   };
 
   // Hoàn tác kỳ khui gần nhất (đưa chân hụi trở lại chân sống)
   const handleRevertLastPeriod = () => {
     if (!currentHui.periods || currentHui.periods.length === 0) return;
+    setIsRevertConfirmOpen(true);
+  };
+
+  const applyRevertLastPeriod = () => {
+    if (!currentHui.periods || currentHui.periods.length === 0) return;
     const lastPeriod = currentHui.periods[currentHui.periods.length - 1];
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn hoàn tác kỳ ${lastPeriod.periodNumber} (người nhận: ${lastPeriod.winnerName}) không? Chân này sẽ trở lại trạng thái chân sống.`
-    );
-    if (!confirmed) return;
 
     const updatedPeriods = currentHui.periods.slice(0, -1);
     const updatedSlots = currentHui.slots.map((s) => {
@@ -797,6 +858,12 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       h.id === currentHui.id ? updatedHui : h
     );
     onUpdateHuiGroups(newHuiGroups);
+    setIsRevertConfirmOpen(false);
+
+    toast({
+      body: `Đã hoàn tác kỳ ${lastPeriod.periodNumber}. Chân ${lastPeriod.winnerName} trở lại chân sống.`,
+      type: 'info',
+    });
   };
 
   // Xóa dây hụi hiện tại (Soft delete lên Cloud và gỡ khỏi danh sách)
@@ -845,7 +912,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     },
     {
       key: 'memberName',
-      header: 'Thành Viên',
+      header: 'Thành viên',
       renderCell: (s: SlotStatistic) => (
         <VStack gap={0}>
           <Text weight="semibold">{s.memberName}</Text>
@@ -884,36 +951,58 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     },
     {
       key: 'totalPaid',
-      header: 'Tổng Đã Đóng',
-      renderCell: (s: SlotStatistic) => formatCurrency(s.totalPaid),
+      header: 'Tổng đã đóng',
+      align: 'end',
+      renderCell: (s: SlotStatistic) => (
+        <Text hasTabularNumbers>{formatCurrency(s.totalPaid)}</Text>
+      ),
       width: proportional(1.5),
     },
     {
       key: 'totalReceived',
-      header: 'Đã Nhận (Hốt)',
+      header: 'Đã nhận (hốt)',
+      align: 'end',
       renderCell: (s: SlotStatistic) =>
         s.totalReceived > 0 ? (
-          <Text weight="semibold">{formatCurrency(s.totalReceived)}</Text>
+          <Text weight="semibold" hasTabularNumbers>{formatCurrency(s.totalReceived)}</Text>
         ) : (
-          <Text color="secondary">-</Text>
+          <Text color="secondary">—</Text>
         ),
       width: proportional(1.5),
     },
     {
       key: 'netProfit',
-      header: 'Lãi / Lỗ Ròng',
+      header: 'Lãi / lỗ ròng',
+      align: 'end',
       renderCell: (s: SlotStatistic) => {
         if (!s.isDead) {
           return <Text color="secondary">Chưa hốt</Text>;
         }
-        const isProfit = s.netProfit >= 0;
+        if (s.netProfit > 0) {
+          return (
+            <Text
+              weight="semibold"
+              hasTabularNumbers
+              style={{ color: 'var(--color-text-success, #059669)' }}
+            >
+              +{formatCurrency(s.netProfit)}
+            </Text>
+          );
+        }
+        if (s.netProfit < 0) {
+          return (
+            <Text
+              weight="semibold"
+              hasTabularNumbers
+              style={{ color: 'var(--color-text-error, #e11d48)' }}
+            >
+              {formatCurrency(s.netProfit)}
+            </Text>
+          );
+        }
         return (
-          <Text
-            weight="semibold"
-            color={isProfit ? 'primary' : 'secondary'}
-          >
-            {isProfit ? '+' : ''}
-            {formatCurrency(s.netProfit)}
+          <Text weight="semibold" hasTabularNumbers color="secondary">
+            0 ₫
           </Text>
         );
       },
@@ -921,7 +1010,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     },
     {
       key: 'qrCode',
-      header: 'Mã QR Nhận Tiền',
+      header: 'Mã QR',
       renderCell: (s: SlotStatistic) => {
         const slot = currentHui.slots.find((slotItem) => slotItem.id === s.slotId);
         const hasQr = !!slot?.qrCodeUrl;
@@ -973,40 +1062,41 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     },
     {
       key: 'memberName',
-      header: 'Thành Viên',
+      header: 'Thành viên',
       renderCell: (p: HuiPeriodPayment) => p.memberName,
       width: proportional(2),
     },
     {
       key: 'amountToPay',
-      header: 'Số Tiền Phải Đóng',
+      header: 'Số tiền phải đóng',
+      align: 'end',
       renderCell: (p: HuiPeriodPayment) => (
-        <Text weight="semibold">{formatCurrency(p.amountToPay)}</Text>
+        <Text weight="semibold" hasTabularNumbers>{formatCurrency(p.amountToPay)}</Text>
       ),
       width: proportional(1.5),
     },
     {
       key: 'status',
-      header: 'Trạng Thái',
+      header: 'Trạng thái',
       renderCell: (p: HuiPeriodPayment) =>
         p.isPaid ? (
-          <Badge label="Đã đóng" variant="success" />
+          <Badge label="Đã đóng" variant="green" />
         ) : (
-          <Badge label="Chưa đóng" variant="warning" />
+          <Badge label="Chưa đóng" variant="yellow" />
         ),
       width: pixel(120),
     },
     {
       key: 'action',
-      header: 'Điểm Danh',
+      header: 'Điểm danh',
       renderCell: (p: HuiPeriodPayment) => (
         <Button
-          label={p.isPaid ? 'Hủy' : 'Đã Thu'}
+          label={p.isPaid ? 'Hoàn tác' : 'Đã thu'}
           variant={p.isPaid ? 'ghost' : 'primary'}
           size="sm"
           icon={
             <Icon
-              icon={p.isPaid ? XMarkIcon : CheckIcon}
+              icon={p.isPaid ? RotateCcw : CheckIcon}
               size="sm"
             />
           }
@@ -1033,26 +1123,15 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     <VStack gap={6}>
       {/* Thanh chọn dây hụi & Các nút hành động */}
       <Card>
-        <HStack hAlign="between" vAlign="center" wrap="wrap" gap={4}>
-          <HStack gap={4} vAlign="center" wrap="wrap">
+        <HStack hAlign="between" vAlign="end" wrap="wrap" gap={4}>
+          <HStack gap={3} vAlign="end" wrap="wrap">
             <Selector
-              label="Chọn Dây Hụi"
+              label="Chọn dây hụi"
               value={selectedHuiId}
               options={huiOptions}
               onChange={setSelectedHuiId}
-              width={340}
+              width={280}
             />
-            <VStack gap={0}>
-              <Text type="supporting" color="secondary">
-                Tiến độ dây hụi
-              </Text>
-              <Text weight="semibold">
-                Đã khui {currentHui.periods?.length || 0} / {currentHui.totalSlots} kỳ
-              </Text>
-            </VStack>
-          </HStack>
-
-          <HStack gap={2} vAlign="center" wrap="wrap">
             <Selector
               label="Bắt đầu từ"
               value={String(currentHui.startMonth || 4)}
@@ -1060,19 +1139,22 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               onChange={(val) => handleChangeStartMonth(parseInt(val, 10))}
               width={140}
             />
+          </HStack>
+
+          <HStack gap={2} vAlign="end" wrap="wrap">
             {livingSlots.length > 0 ? (
               <Button
-                label="🎉 Khui Hụi Kỳ Mới"
+                label="Khui hụi kỳ mới"
                 variant="primary"
                 size="md"
-                icon={<Icon icon={SparklesIcon} size="sm" />}
+                icon={<Icon icon={CalendarPlus} size="sm" />}
                 onClick={() => {
                   setWinnerSlotId(livingSlots[0]?.id || '');
                   setIsKhuiDialogOpen(true);
                 }}
               />
             ) : (
-              <Badge label="Dây Đã Mãn Hạn" variant="neutral" />
+              <Badge label="Dây đã mãn hạn" variant="neutral" />
             )}
             <Button
               label="Thêm dây mới"
@@ -1081,9 +1163,10 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               icon={<Icon icon={Plus} size="sm" />}
               onClick={() => setIsCreateDialogOpen(true)}
             />
+            <Divider orientation="vertical" />
             <Button
               label="Xóa dây hụi"
-              variant="ghost"
+              variant="destructive"
               size="md"
               icon={<Icon icon={Trash2} size="sm" />}
               onClick={() => setIsDeleteDialogOpen(true)}
@@ -1092,12 +1175,12 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
         </HStack>
       </Card>
 
-      {/* Thông tin chi tiết Dây Hụi */}
+      {/* Thông tin chi tiết Dây Hụi (4 thẻ KPI) */}
       <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
         <Card>
           <VStack gap={1}>
             <Text type="supporting" color="secondary">
-              Tiền Góp Mỗi Chân
+              Tiền góp mỗi chân
             </Text>
             <Heading level={4}>{formatCurrency(currentHui.amountPerSlot)}</Heading>
             <Text type="supporting">Mỗi kỳ / 1 chân</Text>
@@ -1106,29 +1189,40 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
         <Card>
           <VStack gap={1}>
             <Text type="supporting" color="secondary">
-              Số Chân / Kỳ
+              Số chân / kỳ
             </Text>
-            <Heading level={4}>{currentHui.totalSlots} Chân</Heading>
+            <Heading level={4}>{currentHui.totalSlots} chân</Heading>
             <Text type="supporting">
-              Chu kỳ: {currentHui.cycle === 'MONTHLY' ? 'Hàng Tháng' : currentHui.cycle === 'WEEKLY' ? 'Hàng Tuần' : 'Hàng Ngày'}
+              Chu kỳ: {currentHui.cycle === 'MONTHLY' ? 'Hàng tháng' : currentHui.cycle === 'WEEKLY' ? 'Hàng tuần' : 'Hàng ngày'}
+            </Text>
+          </VStack>
+        </Card>
+        <Card>
+          <VStack gap={2}>
+            <VStack gap={1}>
+              <Text type="supporting" color="secondary">
+                Số kỳ đã khui
+              </Text>
+              <Heading level={4}>{currentHui.periods?.length || 0} / {currentHui.totalSlots} kỳ</Heading>
+            </VStack>
+            <ProgressBar
+              label="Tiến độ khui hụi"
+              isLabelHidden
+              value={currentHui.periods?.length || 0}
+              max={currentHui.totalSlots || 1}
+              variant={currentHui.periods?.length === currentHui.totalSlots ? 'success' : 'accent'}
+            />
+            <Text type="supporting">
+              Đạt {Math.round(((currentHui.periods?.length || 0) / (currentHui.totalSlots || 1)) * 100)}% chặng đường
             </Text>
           </VStack>
         </Card>
         <Card>
           <VStack gap={1}>
             <Text type="supporting" color="secondary">
-              Số Kỳ Đã Khui
+              Chân chưa hốt (sống)
             </Text>
-            <Heading level={4}>{currentHui.periods?.length || 0} / {currentHui.totalSlots} Kỳ</Heading>
-            <Text type="supporting">Tiến độ dây hụi</Text>
-          </VStack>
-        </Card>
-        <Card>
-          <VStack gap={1}>
-            <Text type="supporting" color="secondary">
-              Chân Chưa Hốt (Sống)
-            </Text>
-            <Heading level={4}>{livingSlots.length} Chân</Heading>
+            <Heading level={4}>{livingSlots.length} chân</Heading>
             <Text type="supporting">Cơ hội hốt các kỳ tiếp</Text>
           </VStack>
         </Card>
@@ -1138,8 +1232,8 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       {huiMatrix && (
         <HuiMatrixTable
           matrix={huiMatrix}
-          title={`Bảng Ma Trận Đóng Hụi Lũy Tiến - ${currentHui.name}`}
-          subtitle={`Bước nhảy lãi Δ = ${currentHui.interestStep || 30} • Bắt đầu từ Tháng ${currentHui.startMonth || 4}`}
+          title={`Bảng ma trận đóng hụi lũy tiến - ${currentHui.name}`}
+          subtitle={`Bắt đầu từ tháng ${currentHui.startMonth || 4}`}
         />
       )}
 
@@ -1155,7 +1249,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
                 <VStack gap={1}>
                   <HStack gap={2} vAlign="center" wrap="wrap">
                     <Heading level={4}>
-                      Điểm danh thu tiền kỳ {latestPeriod.periodNumber} ({latestPeriod.openDate})
+                      Điểm danh thu tiền kỳ {latestPeriod.periodNumber} ({formatDateVi(latestPeriod.openDate)})
                     </Heading>
                     <Badge
                       label={`Người nhận (LỤM): ${latestPeriod.winnerName}`}
@@ -1260,7 +1354,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
         <VStack gap={4}>
           <HStack hAlign="between" vAlign="center">
             <VStack gap={1}>
-              <Heading level={4}>Danh Sách Chân Hụi & Lãi / Lỗ Từng Người</Heading>
+              <Heading level={4}>Danh sách chân hụi & lãi / lỗ từng người</Heading>
               <Text type="supporting" color="secondary">
                 Theo dõi tổng tiền đã nộp, tổng tiền đã nhận và tỉ suất lợi nhuận thực tế
               </Text>
@@ -1543,6 +1637,50 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           </HStack>
         </VStack>
       </Dialog>
+
+      {/* ALERT DIALOG: XÁC NHẬN BÀN GIAO TIỀN KÈM TỰ ĐỘNG THU TIỀN */}
+      <AlertDialog
+        isOpen={isPayoutConfirmOpen}
+        onOpenChange={setIsPayoutConfirmOpen}
+        title="Xác nhận thu đủ & bàn giao hụi"
+        description={`Hiện tại vẫn còn ${unpaidSummary.count} chân chưa đóng tiền (${unpaidSummary.names}). Bạn có muốn tự động xác nhận ĐÃ THU ĐỦ TIỀN từ tất cả thành viên và bàn giao đủ tiền cho người nhận không?`}
+        actionLabel="Thu đủ tiền & Bàn giao"
+        cancelLabel="Hủy bỏ"
+        actionVariant="primary"
+        width={480}
+        onAction={() => {
+          if (pendingPayoutIndex !== null) {
+            applyPayoutUpdate(pendingPayoutIndex, true, true);
+          }
+          setIsPayoutConfirmOpen(false);
+        }}
+      />
+
+      {/* ALERT DIALOG: HOÀN TÁC KỲ KHUI GẦN NHẤT */}
+      <AlertDialog
+        isOpen={isRevertConfirmOpen}
+        onOpenChange={setIsRevertConfirmOpen}
+        title="Hoàn tác kỳ khui gần nhất?"
+        description="Bạn có chắc chắn muốn hoàn tác kỳ khui này không? Chân hụi vừa nhận sẽ trở lại trạng thái chân sống và bảng ma trận đóng hụi sẽ được tính toán lại."
+        actionLabel="Hoàn tác kỳ này"
+        cancelLabel="Giữ nguyên"
+        actionVariant="destructive"
+        width={460}
+        onAction={applyRevertLastPeriod}
+      />
+
+      {/* ALERT DIALOG: XÓA MÃ QR NHẬN TIỀN */}
+      <AlertDialog
+        isOpen={isRemoveQrConfirmOpen}
+        onOpenChange={setIsRemoveQrConfirmOpen}
+        title="Xóa mã QR chuyển khoản?"
+        description={`Bạn có chắc chắn muốn xóa ảnh mã QR của ${selectedQrName}? Sau khi xóa, bạn có thể tải lên mã QR mới bất kỳ lúc nào.`}
+        actionLabel="Xác nhận xóa QR"
+        cancelLabel="Hủy"
+        actionVariant="destructive"
+        width={440}
+        onAction={applyRemoveQrCode}
+      />
     </VStack>
   );
 }

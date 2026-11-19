@@ -4,7 +4,13 @@ import React from 'react';
 import { VStack, HStack } from '@astryxdesign/core/Layout';
 import { Heading, Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
-import { Table, TableColumn } from '@astryxdesign/core/Table';
+import {
+  Table,
+  TableColumn,
+  pixel,
+  proportional,
+  useTableStickyColumns,
+} from '@astryxdesign/core/Table';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Grid } from '@astryxdesign/core/Grid';
@@ -27,16 +33,22 @@ function formatMoneyOrStep(val: number): string {
 
 export function HuiMatrixTable({
   matrix,
-  title = 'Bảng ma trận đóng hụi lũy tiến bậc thang',
-  subtitle = 'Mô hình chuẩn theo dõi kỳ lụm (xanh lá), kỳ đóng bù sau lụm (xám), và kỳ chân sống',
+  title = 'Bảng ma trận đóng hụi lũy tiến',
+  subtitle = 'Mô hình chuẩn theo dõi kỳ lụm, kỳ đóng bù sau lụm và kỳ chân sống',
 }: HuiMatrixTableProps) {
+  // Plugin cố định cột đầu tiên "Thành viên" khi cuộn ngang
+  const stickyPlugin = useTableStickyColumns<ProgressiveHuiMemberRow>({
+    startKeys: ['memberName'],
+  });
+
   // Định nghĩa các cột Table động theo danh sách tháng
   const columns: TableColumn<ProgressiveHuiMemberRow>[] = [
     {
       key: 'memberName',
       header: 'Thành viên',
+      width: pixel(140),
       renderCell: (row) => (
-        <HStack gap={2} vAlign="center">
+        <HStack gap={2} vAlign="center" wrap="nowrap">
           <Badge label={row.memberName} variant="yellow" />
           <Text type="supporting" color="secondary">
             (Kỳ {row.turnIndex})
@@ -51,6 +63,8 @@ export function HuiMatrixTable({
     columns.push({
       key: `month_${idx}`,
       header: monthName.toLowerCase().replace(/^t/, 'T'),
+      align: 'center',
+      width: pixel(120),
       renderCell: (row) => {
         const cell = row.cells[idx];
         if (!cell) return <Text color="disabled">—</Text>;
@@ -80,7 +94,7 @@ export function HuiMatrixTable({
                 variant="neutral"
               />
               {matrix.baseAmount > 0 && (
-                <Text type="supporting" color="secondary">
+                <Text type="supporting" color="secondary" hasTabularNumbers>
                   Đóng: {formatMoneyOrStep(cell.totalToPay || 0)}
                 </Text>
               )}
@@ -95,7 +109,7 @@ export function HuiMatrixTable({
               —
             </Text>
             {matrix.baseAmount > 0 && (
-              <Text type="supporting" color="secondary">
+              <Text type="supporting" color="secondary" hasTabularNumbers>
                 Đóng: {formatMoneyOrStep(matrix.baseAmount)}
               </Text>
             )}
@@ -110,14 +124,16 @@ export function HuiMatrixTable({
     columns.push({
       key: 'wonAmount',
       header: 'Tiền lụm',
+      align: 'end',
+      width: pixel(130),
       renderCell: (row) => (
-        <VStack gap={0} hAlign="center">
+        <VStack gap={0} hAlign="end">
           <Badge
             label={formatMoneyOrStep(row.wonAmount)}
             variant="green"
           />
           {row.wonBonus > 0 && (
-            <Text type="supporting" color="secondary">
+            <Text type="supporting" color="secondary" hasTabularNumbers>
               +{formatMoneyOrStep(row.wonBonus)} lãi
             </Text>
           )}
@@ -129,13 +145,15 @@ export function HuiMatrixTable({
     columns.push({
       key: 'totalPaid',
       header: 'Tổng đóng',
+      align: 'end',
+      width: pixel(130),
       renderCell: (row) => (
-        <VStack gap={0} hAlign="center">
-          <Text weight="semibold">
+        <VStack gap={0} hAlign="end">
+          <Text weight="semibold" hasTabularNumbers>
             {formatMoneyOrStep(row.totalPaid)}
           </Text>
           {row.totalInterestPaid > 0 && (
-            <Text type="supporting" color="secondary">
+            <Text type="supporting" color="secondary" hasTabularNumbers>
               +{formatMoneyOrStep(row.totalInterestPaid)} bù
             </Text>
           )}
@@ -148,24 +166,34 @@ export function HuiMatrixTable({
   columns.push({
     key: 'netProfit',
     header: 'Lãi / Lỗ',
+    align: 'end',
+    width: pixel(130),
     renderCell: (row) => {
       if (row.netProfit > 0) {
         return (
-          <Badge
-            label={`+${formatMoneyOrStep(row.netProfit)} (Lời)`}
-            variant="green"
-          />
+          <HStack hAlign="end" width="100%">
+            <Badge
+              label={`+${formatMoneyOrStep(row.netProfit)}`}
+              variant="green"
+            />
+          </HStack>
         );
       }
       if (row.netProfit < 0) {
         return (
-          <Badge
-            label={`${formatMoneyOrStep(row.netProfit)} (Lỗ)`}
-            variant="red"
-          />
+          <HStack hAlign="end" width="100%">
+            <Badge
+              label={`${formatMoneyOrStep(row.netProfit)}`}
+              variant="red"
+            />
+          </HStack>
         );
       }
-      return <Badge label="0 ₫ (Hòa)" variant="neutral" />;
+      return (
+        <HStack hAlign="end" width="100%">
+          <Badge label="0 ₫ (Hòa)" variant="neutral" />
+        </HStack>
+      );
     },
   });
 
@@ -203,6 +231,7 @@ export function HuiMatrixTable({
             density="compact"
             dividers="rows"
             hasHover
+            plugins={{ sticky: stickyPlugin }}
           />
         </VStack>
       </Card>

@@ -79,6 +79,7 @@ export async function fetchHuiGroupsFromCloud(): Promise<HuiGroup[] | null> {
     const { data, error } = await client
       .from('hui_groups')
       .select('*')
+      .neq('status', 'DELETED')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -126,6 +127,33 @@ export async function syncHuiGroupToCloud(group: HuiGroup): Promise<boolean> {
     });
     if (error) {
       console.warn('Lỗi khi lưu Dây Hụi lên Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Lỗi kết nối Supabase:', e);
+    return false;
+  }
+}
+
+/**
+ * Xóa mềm dây hụi trên Cloud (Soft Delete)
+ * Cập nhật status = 'DELETED' để bảo toàn dữ liệu và đồng bộ trạng thái đã xóa về mọi máy
+ */
+export async function softDeleteHuiGroupFromCloud(groupId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client
+      .from('hui_groups')
+      .update({
+        status: 'DELETED',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', groupId);
+
+    if (error) {
+      console.warn('Lỗi khi xóa mềm Dây Hụi trên Supabase:', error.message);
       return false;
     }
     return true;

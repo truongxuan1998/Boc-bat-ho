@@ -8,6 +8,7 @@ import {
 } from './supabaseClient';
 
 const STORAGE_KEY = 'BOC_BAT_HO_DATA_V1';
+const CLOUD_SYNC_INITIALIZED_KEY = 'BOC_BAT_HO_CLOUD_INITIALIZED_V1';
 
 export const emptySystemData: SystemData = {
   lastUpdated: new Date().toISOString(),
@@ -53,6 +54,9 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
 
     // Nếu trên Cloud đã có dữ liệu, dùng dữ liệu Cloud và cache vào LocalStorage
     if (cloudHui && cloudHui.length > 0) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CLOUD_SYNC_INITIALIZED_KEY, 'true');
+      }
       const updatedData: SystemData = {
         huiGroups: cloudHui,
         batHoLoans: cloudBatHo || localData.batHoLoans,
@@ -64,13 +68,34 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
       return updatedData;
     }
 
-    // Nếu trên Cloud còn trống và local có dữ liệu, đồng bộ lên Cloud
-    if (localData.huiGroups.length > 0 || localData.batHoLoans.length > 0) {
+    const isCloudInitialized =
+      typeof window !== 'undefined' &&
+      localStorage.getItem(CLOUD_SYNC_INITIALIZED_KEY) === 'true';
+
+    // Nếu Cloud trả về rỗng và đã từng khởi tạo Cloud trước đây:
+    // Người dùng đã chủ động xóa hết các dây hụi, đồng bộ trạng thái rỗng này vào local
+    if (isCloudInitialized && cloudHui && cloudHui.length === 0) {
+      const updatedData: SystemData = {
+        huiGroups: [],
+        batHoLoans: cloudBatHo || localData.batHoLoans,
+        lastUpdated: new Date().toISOString(),
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
+      }
+      return updatedData;
+    }
+
+    // Nếu trên Cloud còn trống và là lần đầu khởi tạo, đồng bộ dữ liệu local lên Cloud
+    if (!isCloudInitialized && (localData.huiGroups.length > 0 || localData.batHoLoans.length > 0)) {
       for (const h of localData.huiGroups) {
         await syncHuiGroupToCloud(h);
       }
       for (const b of localData.batHoLoans) {
         await syncBatHoLoanToCloud(b);
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CLOUD_SYNC_INITIALIZED_KEY, 'true');
       }
     }
   } catch (e) {

@@ -49,7 +49,10 @@ import {
 } from '@/lib/huiCalculator';
 import { HuiMatrixTable } from '@/components/HuiMatrixTable';
 import { sanitizeAndValidateImage } from '@/lib/imageValidator';
-import { uploadQrCodeToStorage } from '@/lib/supabaseClient';
+import {
+  uploadQrCodeToStorage,
+  softDeleteHuiGroupFromCloud,
+} from '@/lib/supabaseClient';
 
 // Định dạng số có dấu chấm phân cách hàng nghìn (chuẩn Việt Nam)
 function formatNumberDots(val: number): string {
@@ -93,6 +96,10 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   // State Tạo Dây Hụi Mới Dialog
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newHuiName, setNewHuiName] = useState('Dây hụi lũy tiến tháng 4');
+
+  // State Xóa Dây Hụi Dialog
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeletingHui, setIsDeletingHui] = useState(false);
   const [newHuiAmount, setNewHuiAmount] = useState<number>(5000000);
   const [newHuiMembers, setNewHuiMembers] = useState<string[]>([
     'KM',
@@ -790,6 +797,29 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     onUpdateHuiGroups(newHuiGroups);
   };
 
+  // Xóa dây hụi hiện tại (Soft delete lên Cloud và gỡ khỏi danh sách)
+  const handleDeleteCurrentHui = async () => {
+    if (!currentHui) return;
+    setIsDeletingHui(true);
+    const idToDelete = currentHui.id;
+    const remainingGroups = huiGroups.filter((h) => h.id !== idToDelete);
+
+    if (remainingGroups.length > 0) {
+      setSelectedHuiId(remainingGroups[0].id);
+    } else {
+      setSelectedHuiId('');
+    }
+
+    setIsDeleteDialogOpen(false);
+    setIsDeletingHui(false);
+
+    // Cập nhật state danh sách mới cho app
+    onUpdateHuiGroups(remainingGroups);
+
+    // Đồng bộ xóa mềm lên Supabase
+    await softDeleteHuiGroupFromCloud(idToDelete);
+  };
+
   // Cấu hình cột Table thống kê chân hụi
   const slotColumns: TableColumn<SlotStatistic>[] = [
     {
@@ -1028,6 +1058,13 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               size="md"
               icon={<Icon icon={Plus} size="sm" />}
               onClick={() => setIsCreateDialogOpen(true)}
+            />
+            <Button
+              label="Xóa dây hụi"
+              variant="ghost"
+              size="md"
+              icon={<Icon icon={Trash2} size="sm" />}
+              onClick={() => setIsDeleteDialogOpen(true)}
             />
           </HStack>
         </HStack>
@@ -1439,6 +1476,47 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
                 setIsQrModalOpen(false);
                 setQrUploadError('');
               }}
+            />
+          </HStack>
+        </VStack>
+      </Dialog>
+
+      {/* DIALOG XÁC NHẬN XÓA DÂY HỤI */}
+      <Dialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        width={480}
+        purpose="required"
+      >
+        <DialogHeader
+          title="Xác nhận xóa dây hụi"
+          subtitle={`Dây: ${currentHui?.name || ''}`}
+          onOpenChange={setIsDeleteDialogOpen}
+        />
+        <VStack gap={4} padding={4}>
+          <Text color="secondary">
+            Bạn có chắc chắn muốn xóa dây hụi <Text weight="bold">&quot;{currentHui?.name}&quot;</Text>?
+          </Text>
+          <Text type="supporting" color="secondary">
+            Hành động này sẽ xóa dây hụi cùng toàn bộ các kỳ đã khui và lịch sử đóng tiền khỏi màn hình, đồng thời đồng bộ xóa trên cơ sở dữ liệu Supabase.
+          </Text>
+
+          <Divider />
+
+          <HStack hAlign="end" gap={2}>
+            <Button
+              label="Hủy"
+              variant="secondary"
+              size="md"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            />
+            <Button
+              label="Xác nhận xóa"
+              variant="destructive"
+              size="md"
+              isLoading={isDeletingHui}
+              icon={<Icon icon={Trash2} size="sm" />}
+              onClick={handleDeleteCurrentHui}
             />
           </HStack>
         </VStack>

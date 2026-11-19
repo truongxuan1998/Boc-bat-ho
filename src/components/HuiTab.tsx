@@ -93,26 +93,21 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     new Date().toISOString().split('T')[0]
   );
 
+  const currentMonthNumber = new Date().getMonth() + 1;
+
   // State Tạo Dây Hụi Mới Dialog
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newHuiName, setNewHuiName] = useState('Dây hụi lũy tiến tháng 4');
+  const [newHuiName, setNewHuiName] = useState(`Dây hụi lũy tiến tháng ${currentMonthNumber}`);
 
   // State Xóa Dây Hụi Dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeletingHui, setIsDeletingHui] = useState(false);
-  const [newHuiAmount, setNewHuiAmount] = useState<number>(5000000);
-  const [newHuiMembers, setNewHuiMembers] = useState<string[]>([
-    'KM',
-    'BẢO',
-    'CƯỜNG',
-    'TRUNG',
-    'XUÂN',
-    'BÌNH',
-  ]);
+  const [newHuiAmount, setNewHuiAmount] = useState<number>(3000000);
+  const [newHuiMembers, setNewHuiMembers] = useState<string[]>([]);
   const [newMemberInput, setNewMemberInput] = useState<string>('');
   const [draggedMemberIdx, setDraggedMemberIdx] = useState<number | null>(null);
   const [newHuiStep, setNewHuiStep] = useState<number>(30000);
-  const [newHuiStartMonth, setNewHuiStartMonth] = useState<number>(4);
+  const [newHuiStartMonth, setNewHuiStartMonth] = useState<number>(currentMonthNumber);
   const [newHuiCycle, setNewHuiCycle] = useState<'MONTHLY' | 'WEEKLY' | 'DAILY'>('MONTHLY');
 
   const currentHui =
@@ -229,13 +224,14 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       alert('Vui lòng nhập tên dây hụi');
       return;
     }
-    const names =
-      newHuiMembers.length > 0
-        ? newHuiMembers
-        : ['KM', 'BẢO', 'CƯỜNG', 'TRUNG', 'XUÂN', 'BÌNH'];
-    const amount = newHuiAmount || 5000000;
+    if (newHuiMembers.length < 2) {
+      alert('Vui lòng nhập ít nhất 2 thành viên cho dây hụi');
+      return;
+    }
+    const names = newHuiMembers;
+    const amount = newHuiAmount || 3000000;
     const step = newHuiStep !== undefined ? newHuiStep : 30000;
-    const startMonth = newHuiStartMonth || 4;
+    const startMonth = newHuiStartMonth || currentMonthNumber;
 
     const newId = 'hui_' + Date.now();
     const slots = names.map((name, i) => ({
@@ -415,7 +411,12 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               {/* VÙNG CHIP THÀNH VIÊN CUỘN GỌN GÀNG TỐI ĐA 2-3 DÒNG */}
               <VStack gap={2} height={120} isScrollable>
                 <HStack wrap="wrap" gap={2} vAlign="center">
-                  {newHuiMembers.map((name, idx) => {
+                  {newHuiMembers.length === 0 ? (
+                    <Text color="secondary" type="supporting">
+                      Chưa có thành viên nào. Hãy nhập tên ở ô bên dưới rồi nhấn Enter để thêm các chân hụi.
+                    </Text>
+                  ) : (
+                    newHuiMembers.map((name, idx) => {
                     const isFirst = idx === 0;
                     const isLast = idx === newHuiMembers.length - 1;
                     const tokenColor = isFirst
@@ -472,7 +473,8 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
                         />
                       </HStack>
                     );
-                  })}
+                  })
+                )}
                 </HStack>
               </VStack>
 
@@ -820,6 +822,19 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     await softDeleteHuiGroupFromCloud(idToDelete);
   };
 
+  // Thay đổi tháng bắt đầu của dây hụi hiện tại
+  const handleChangeStartMonth = (newMonth: number) => {
+    if (!currentHui) return;
+    const updatedHui: HuiGroup = {
+      ...currentHui,
+      startMonth: newMonth,
+    };
+    const newHuiGroups = huiGroups.map((h) =>
+      h.id === currentHui.id ? updatedHui : h
+    );
+    onUpdateHuiGroups(newHuiGroups);
+  };
+
   // Cấu hình cột Table thống kê chân hụi
   const slotColumns: TableColumn<SlotStatistic>[] = [
     {
@@ -1037,7 +1052,14 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
             </VStack>
           </HStack>
 
-          <HStack gap={2} vAlign="center">
+          <HStack gap={2} vAlign="center" wrap="wrap">
+            <Selector
+              label="Bắt đầu từ"
+              value={String(currentHui.startMonth || 4)}
+              options={MONTH_OPTIONS}
+              onChange={(val) => handleChangeStartMonth(parseInt(val, 10))}
+              width={140}
+            />
             {livingSlots.length > 0 ? (
               <Button
                 label="🎉 Khui Hụi Kỳ Mới"

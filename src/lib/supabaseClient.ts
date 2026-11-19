@@ -86,21 +86,46 @@ export async function fetchHuiGroupsFromCloud(): Promise<HuiGroup[] | null> {
       console.warn('Lỗi khi tải Dây Hụi từ Supabase:', error.message);
       return null;
     }
-    return (data || []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      amountPerSlot: Number(row.amount_per_slot),
-      totalSlots: Number(row.total_slots),
-      cycle: row.cycle,
-      commissionPerPeriod: Number(row.commission_per_period),
-      interestStep: row.interest_step !== undefined ? Number(row.interest_step) : 30000,
-      startMonth: row.start_month !== undefined ? Number(row.start_month) : 4,
-      startDate: row.start_date,
-      status: row.status,
-      slots: row.slots || [],
-      periods: row.periods || [],
-      note: row.note,
-    }));
+    return (data || []).map((row) => {
+      let parsedStartMonth = row.start_month !== undefined ? Number(row.start_month) : undefined;
+      let parsedInterestStep = row.interest_step !== undefined ? Number(row.interest_step) : undefined;
+      let userNote = row.note;
+
+      if (row.note && typeof row.note === 'string' && row.note.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(row.note);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.startMonth !== undefined && parsedStartMonth === undefined) {
+              parsedStartMonth = Number(parsed.startMonth);
+            }
+            if (parsed.interestStep !== undefined && parsedInterestStep === undefined) {
+              parsedInterestStep = Number(parsed.interestStep);
+            }
+            if (parsed.userNote !== undefined) {
+              userNote = parsed.userNote;
+            }
+          }
+        } catch {
+          // not JSON, keep original note
+        }
+      }
+
+      return {
+        id: row.id,
+        name: row.name,
+        amountPerSlot: Number(row.amount_per_slot),
+        totalSlots: Number(row.total_slots),
+        cycle: row.cycle,
+        commissionPerPeriod: Number(row.commission_per_period),
+        interestStep: parsedInterestStep !== undefined ? parsedInterestStep : 30000,
+        startMonth: parsedStartMonth !== undefined ? parsedStartMonth : 4,
+        startDate: row.start_date,
+        status: row.status,
+        slots: row.slots || [],
+        periods: row.periods || [],
+        note: userNote,
+      };
+    });
   } catch (e) {
     console.warn('Lỗi kết nối Supabase:', e);
     return null;
@@ -111,6 +136,18 @@ export async function syncHuiGroupToCloud(group: HuiGroup): Promise<boolean> {
   const client = getSupabaseClient();
   if (!client) return false;
   try {
+    let metaNote = group.note || '';
+    try {
+      const meta = {
+        userNote: group.note || '',
+        startMonth: group.startMonth !== undefined ? group.startMonth : 4,
+        interestStep: group.interestStep !== undefined ? group.interestStep : 30000,
+      };
+      metaNote = JSON.stringify(meta);
+    } catch {
+      metaNote = group.note || '';
+    }
+
     const { error } = await client.from('hui_groups').upsert({
       id: group.id,
       name: group.name,
@@ -122,7 +159,7 @@ export async function syncHuiGroupToCloud(group: HuiGroup): Promise<boolean> {
       status: group.status,
       slots: group.slots,
       periods: group.periods,
-      note: group.note,
+      note: metaNote,
       updated_at: new Date().toISOString(),
     });
     if (error) {

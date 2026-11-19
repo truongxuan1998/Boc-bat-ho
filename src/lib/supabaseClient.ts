@@ -92,6 +92,8 @@ export async function fetchHuiGroupsFromCloud(): Promise<HuiGroup[] | null> {
       totalSlots: Number(row.total_slots),
       cycle: row.cycle,
       commissionPerPeriod: Number(row.commission_per_period),
+      interestStep: row.interest_step !== undefined ? Number(row.interest_step) : 30000,
+      startMonth: row.start_month !== undefined ? Number(row.start_month) : 4,
       startDate: row.start_date,
       status: row.status,
       slots: row.slots || [],
@@ -223,4 +225,42 @@ export function subscribeToRealtimeChanges(onUpdate: () => void): () => void {
   return () => {
     client.removeChannel(channel);
   };
+}
+
+/**
+ * Tải file ảnh mã QR đã khử trùng lên Supabase Storage bucket 'qr-codes'
+ * @param blob Blob ảnh sạch sau khi đã được xác thực và nén
+ * @param fileName Tên file trong bucket (ví dụ: hui_123/slot_4.webp)
+ * @returns Public URL của ảnh hoặc null nếu chưa có bucket / lỗi
+ */
+export async function uploadQrCodeToStorage(
+  blob: Blob,
+  fileName: string
+): Promise<string | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  try {
+    const { data, error } = await client.storage
+      .from('qr-codes')
+      .upload(fileName, blob, {
+        upsert: true,
+        contentType: 'image/webp',
+        cacheControl: '3600',
+      });
+
+    if (error) {
+      console.warn('Lỗi khi tải ảnh lên Supabase Storage:', error.message);
+      return null;
+    }
+
+    const { data: urlData } = client.storage
+      .from('qr-codes')
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  } catch (e) {
+    console.warn('Lỗi kết nối Storage:', e);
+    return null;
+  }
 }

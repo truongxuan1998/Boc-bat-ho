@@ -266,12 +266,8 @@ export function calculateSlotStatistics(hui: HuiGroup): SlotStatistic[] {
 }
 
 /**
- * Định dạng tiền tệ VND đẹp
+ * Định dạng tiền tệ VND đồng nhất với ký hiệu ₫
  */
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
 }

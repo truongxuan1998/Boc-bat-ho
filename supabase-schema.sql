@@ -1,7 +1,7 @@
 -- ====================================================================
 -- SCHEMA DATABASE SUPABASE CHO HỆ THỐNG BỐC BÁT HỌ & QUẢN LÝ HỤI
 -- Hướng dẫn: Copy toàn bộ nội dung file này dán vào Supabase SQL Editor
--- rồi nhấn "RUN" là xong 100%!
+-- rồi nhấn "RUN" (chạy 1 lần duy nhất) là kết nối thành công 100%!
 -- ====================================================================
 
 -- 1. BẢNG DÂY HỤI / HỌ XOAY VÒNG
@@ -40,35 +40,92 @@ create table if not exists public.bat_ho_loans (
   updated_at timestamptz default now()
 );
 
--- 3. KÍCH HOẠT ROW LEVEL SECURITY (RLS) VÀ MỞ QUYỀN TRUY CẬP
+-- 3. CẤP QUYỀN TRUY CẬP (GRANT) CHO ROLE anon VÀ authenticated
+-- (Rất quan trọng: Nếu thiếu lệnh này PostgREST sẽ báo lỗi 42501 permission denied)
+grant usage on schema public to anon, authenticated;
+grant all on table public.hui_groups to anon, authenticated;
+grant all on table public.bat_ho_loans to anon, authenticated;
+alter default privileges in schema public grant all on tables to anon, authenticated;
+alter default privileges in schema public grant all on sequences to anon, authenticated;
+
+-- 4. KÍCH HOẠT ROW LEVEL SECURITY (RLS) & CHÍNH SÁCH MỞ (PUBLIC ACCESS)
 alter table public.hui_groups enable row level security;
 alter table public.bat_ho_loans enable row level security;
 
--- Policy cho phép đọc/ghi qua anon key (public)
+-- Xóa các policy cũ để tránh trùng lặp
+drop policy if exists "Allow public all hui_groups" on public.hui_groups;
 drop policy if exists "Allow public read hui_groups" on public.hui_groups;
-create policy "Allow public read hui_groups" on public.hui_groups for select using (true);
-
 drop policy if exists "Allow public insert hui_groups" on public.hui_groups;
-create policy "Allow public insert hui_groups" on public.hui_groups for insert with check (true);
-
 drop policy if exists "Allow public update hui_groups" on public.hui_groups;
-create policy "Allow public update hui_groups" on public.hui_groups for update using (true);
-
 drop policy if exists "Allow public delete hui_groups" on public.hui_groups;
-create policy "Allow public delete hui_groups" on public.hui_groups for delete using (true);
 
+-- Cấp toàn quyền CRUD cho hui_groups
+create policy "Allow public all hui_groups" on public.hui_groups
+  for all
+  using (true)
+  with check (true);
+
+-- Xóa các policy cũ của bat_ho_loans
+drop policy if exists "Allow public all bat_ho_loans" on public.bat_ho_loans;
 drop policy if exists "Allow public read bat_ho_loans" on public.bat_ho_loans;
-create policy "Allow public read bat_ho_loans" on public.bat_ho_loans for select using (true);
-
 drop policy if exists "Allow public insert bat_ho_loans" on public.bat_ho_loans;
-create policy "Allow public insert bat_ho_loans" on public.bat_ho_loans for insert with check (true);
-
 drop policy if exists "Allow public update bat_ho_loans" on public.bat_ho_loans;
-create policy "Allow public update bat_ho_loans" on public.bat_ho_loans for update using (true);
-
 drop policy if exists "Allow public delete bat_ho_loans" on public.bat_ho_loans;
-create policy "Allow public delete bat_ho_loans" on public.bat_ho_loans for delete using (true);
 
--- 4. KÍCH HOẠT REALTIME ĐỂ MỌI MÁY ĐỒNG BỘ TỨC THÌ
-alter publication supabase_realtime add table public.hui_groups;
-alter publication supabase_realtime add table public.bat_ho_loans;
+-- Cấp toàn quyền CRUD cho bat_ho_loans
+create policy "Allow public all bat_ho_loans" on public.bat_ho_loans
+  for all
+  using (true)
+  with check (true);
+
+-- 5. KÍCH HOẠT REALTIME ĐỂ MỌI MÁY ĐỒNG BỘ TỨC THÌ (AN TOÀN NẾU CHẠY LẠI NHIỀU LẦN)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'hui_groups'
+  ) then
+    alter publication supabase_realtime add table public.hui_groups;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'bat_ho_loans'
+  ) then
+    alter publication supabase_realtime add table public.bat_ho_loans;
+  end if;
+end $$;
+
+-- 6. TẠO BUCKET LƯU MÃ QR (SUPABASE STORAGE) VÀ MỞ QUYỀN PUBLIC CHO ẢNH
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'qr-codes',
+  'qr-codes',
+  true,
+  5242880, -- Giới hạn 5MB
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+-- Policy cho phép đọc, tải lên và cập nhật ảnh trong bucket qr-codes
+drop policy if exists "Allow public read qr-codes" on storage.objects;
+create policy "Allow public read qr-codes"
+  on storage.objects for select
+  using (bucket_id = 'qr-codes');
+
+drop policy if exists "Allow public insert qr-codes" on storage.objects;
+create policy "Allow public insert qr-codes"
+  on storage.objects for insert
+  with check (bucket_id = 'qr-codes');
+
+drop policy if exists "Allow public update qr-codes" on storage.objects;
+create policy "Allow public update qr-codes"
+  on storage.objects for update
+  using (bucket_id = 'qr-codes');
+
+drop policy if exists "Allow public delete qr-codes" on storage.objects;
+create policy "Allow public delete qr-codes"
+  on storage.objects for delete
+  using (bucket_id = 'qr-codes');

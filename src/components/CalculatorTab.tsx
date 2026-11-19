@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { VStack, HStack } from '@astryxdesign/core/Layout';
+import { StackItem } from '@astryxdesign/core/Stack';
 import { Heading, Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
 import { Grid, GridSpan } from '@astryxdesign/core/Grid';
@@ -15,13 +16,14 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Divider } from '@astryxdesign/core/Divider';
 import { Icon } from '@astryxdesign/core/Icon';
 import {
-  CalculatorIcon,
-  AdjustmentsHorizontalIcon,
-  BanknotesIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  PlusIcon,
-} from '@heroicons/react/24/outline';
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  SlidersHorizontal,
+  Calculator,
+  Coins,
+} from 'lucide-react';
 import { generateProgressiveMatrix, formatCurrency } from '@/lib/huiCalculator';
 import { HuiMatrixTable } from '@/components/HuiMatrixTable';
 
@@ -40,7 +42,7 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
 export function CalculatorTab() {
   // 1. State danh sách thành viên (Chip / Tag)
   const [members, setMembers] = useState<string[]>([
-    'KM',
+    'BÌNH',
     'BẢO',
     'CƯỜNG',
     'TRUNG',
@@ -102,7 +104,7 @@ export function CalculatorTab() {
 
   // Tính toán ma trận lũy tiến theo công thức
   const matrix = useMemo(() => {
-    const validMembers = members.length > 0 ? members : ['KM', 'BẢO'];
+    const validMembers = members.length > 0 ? members : ['BÌNH', 'BẢO'];
     return generateProgressiveMatrix(
       validMembers,
       startMonth,
@@ -115,11 +117,11 @@ export function CalculatorTab() {
   const lastWinner = matrix.members[matrix.members.length - 1];
 
   return (
-    <VStack gap={6} width="100%" maxWidth={1120}>
+    <VStack gap={6} width="100%">
       {/* 1. HEADER GIỚI THIỆU */}
       <Card>
         <HStack gap={3} vAlign="center">
-          <Icon icon={CalculatorIcon} size="lg" />
+          <Icon icon={Calculator} size="lg" />
           <VStack gap={0}>
             <Heading level={3}>Máy tính dự toán hụi lũy tiến bậc thang</Heading>
             <Text type="supporting" color="secondary">
@@ -135,12 +137,12 @@ export function CalculatorTab() {
           {/* TIÊU ĐỀ KHU VỰC THIẾT LẬP */}
           <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
             <HStack gap={2} vAlign="center">
-              <Icon icon={AdjustmentsHorizontalIcon} size="md" />
+              <Icon icon={SlidersHorizontal} size="md" />
               <Heading level={4}>Thiết lập thông số dây hụi</Heading>
             </HStack>
             <Badge
               label={`Tổng cộng: ${matrix.totalMembers} thành viên (${matrix.totalMembers} kỳ)`}
-              variant="info"
+              variant="blue"
             />
           </HStack>
 
@@ -151,13 +153,13 @@ export function CalculatorTab() {
                 Danh sách thành viên (theo thứ tự lụm từ kỳ 1 đến chót)
               </Text>
               <Text type="supporting" color="secondary">
-                Gõ tên rồi nhấn Enter hoặc dấu phẩy để thêm. Kéo thả chip hoặc bấm mũi tên ‹ › để sắp xếp lại thứ tự kỳ lụm.
+                Gõ tên rồi nhấn Enter hoặc dấu phẩy để thêm. Kéo thả chip hoặc bấm mũi tên ‹ › tích hợp trong từng chip để sắp xếp thứ tự kỳ lụm.
               </Text>
             </VStack>
 
             <Card variant="muted" padding={4}>
               <VStack gap={4}>
-                {/* HÀNG CÁC CHIP THÀNH VIÊN TRỰC QUAN */}
+                {/* HÀNG CÁC CHIP THÀNH VIÊN TRỰC QUAN GỌN GÀNG */}
                 <HStack wrap="wrap" gap={2} vAlign="center">
                   {members.map((name, idx) => {
                     const isFirst = idx === 0;
@@ -171,7 +173,6 @@ export function CalculatorTab() {
                     return (
                       <HStack
                         key={`${name}-${idx}`}
-                        gap={1}
                         vAlign="center"
                         draggable
                         onDragStart={() => setDraggedIdx(idx)}
@@ -179,53 +180,69 @@ export function CalculatorTab() {
                         onDrop={() => handleDrop(idx)}
                       >
                         <Token
+                          icon={<Icon icon={GripVertical} size="xsm" color="secondary" />}
                           label={`${idx + 1}. ${name}`}
                           color={tokenColor}
                           size="md"
+                          endContent={
+                            (!isFirst || !isLast) ? (
+                              <HStack gap={0.5} vAlign="center">
+                                {!isFirst && (
+                                  <IconButton
+                                    label={`Chuyển ${name} lên kỳ trước`}
+                                    icon={<Icon icon={ChevronLeft} size="xsm" />}
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveMember(idx, -1);
+                                    }}
+                                  />
+                                )}
+                                {!isLast && (
+                                  <IconButton
+                                    label={`Chuyển ${name} xuống kỳ sau`}
+                                    icon={<Icon icon={ChevronRight} size="xsm" />}
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveMember(idx, 1);
+                                    }}
+                                  />
+                                )}
+                              </HStack>
+                            ) : undefined
+                          }
                           onRemove={() => handleRemoveMember(idx)}
                         />
-                        <HStack gap={0} vAlign="center">
-                          <IconButton
-                            label={`Di chuyển ${name} sang trái (lên kỳ trước)`}
-                            icon={<Icon icon={ChevronLeftIcon} size="xsm" />}
-                            size="sm"
-                            variant="ghost"
-                            isDisabled={isFirst}
-                            onClick={() => handleMoveMember(idx, -1)}
-                          />
-                          <IconButton
-                            label={`Di chuyển ${name} sang phải (xuống kỳ sau)`}
-                            icon={<Icon icon={ChevronRightIcon} size="xsm" />}
-                            size="sm"
-                            variant="ghost"
-                            isDisabled={isLast}
-                            onClick={() => handleMoveMember(idx, 1)}
-                          />
-                        </HStack>
                       </HStack>
                     );
                   })}
                 </HStack>
 
-                {/* Ô NHẬP TÊN NHANH */}
-                <HStack gap={2} vAlign="center">
-                  <TextInput
-                    label="Thêm thành viên mới"
-                    isLabelHidden
-                    value={newMemberText}
-                    onChange={setNewMemberText}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ',') {
-                        e.preventDefault();
-                        handleAddMembers(newMemberText);
-                      }
-                    }}
-                    placeholder="Nhập tên thành viên (ví dụ: TUẤN, LINH...) rồi nhấn Enter hoặc dấu phẩy..."
-                  />
+                {/* Ô NHẬP TÊN RỘNG RÃI KHÔNG BỊ CẮT CHỮ */}
+                <HStack gap={2} vAlign="center" wrap="wrap" width="100%">
+                  <StackItem size="fill">
+                    <TextInput
+                      label="Thêm thành viên mới"
+                      isLabelHidden
+                      value={newMemberText}
+                      onChange={setNewMemberText}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          handleAddMembers(newMemberText);
+                        }
+                      }}
+                      placeholder="Nhập tên thành viên (ví dụ: TUẤN, LINH...) rồi nhấn Enter hoặc dấu phẩy..."
+                      width="100%"
+                    />
+                  </StackItem>
                   <Button
                     label="Thêm thành viên"
                     variant="secondary"
-                    icon={<Icon icon={PlusIcon} size="sm" />}
+                    icon={<Icon icon={Plus} size="sm" />}
                     onClick={() => handleAddMembers(newMemberText)}
                     isDisabled={!newMemberText.trim()}
                   />
@@ -234,58 +251,55 @@ export function CalculatorTab() {
             </Card>
           </VStack>
 
-          {/* HÀNG 3 THÔNG SỐ TÀI CHÍNH: TỶ LỆ 2 - 2 - 1 */}
-          <Grid columns={5} gap={4}>
-            {/* TIỀN ĐÓNG MỖI CHÂN (2 CỘT) */}
-            <GridSpan columns={2}>
-              <InputGroup label="Tiền đóng hụi mỗi chân">
-                <TextInput
-                  label="Tiền đóng hụi mỗi chân"
-                  isLabelHidden
-                  value={formatNumberDots(amountPerSlot)}
-                  onChange={(val) => {
-                    const clean = val.replace(/\D/g, '');
-                    setAmountPerSlot(clean ? parseInt(clean, 10) : 0);
-                  }}
-                  placeholder="3.000.000"
-                  inputMode="numeric"
-                />
-                <InputGroupText>VNĐ</InputGroupText>
-              </InputGroup>
-            </GridSpan>
-
-            {/* BƯỚC NHẢY LÃI LŨY TIẾN (2 CỘT) */}
-            <GridSpan columns={2}>
-              <InputGroup label="Mức tăng lãi mỗi kỳ (bước nhảy)">
-                <TextInput
-                  label="Mức tăng lãi mỗi kỳ (bước nhảy)"
-                  isLabelHidden
-                  value={formatNumberDots(interestStep)}
-                  onChange={(val) => {
-                    const clean = val.replace(/\D/g, '');
-                    setInterestStep(clean ? parseInt(clean, 10) : 0);
-                  }}
-                  placeholder="30.000"
-                  inputMode="numeric"
-                />
-                <InputGroupText>VNĐ</InputGroupText>
-              </InputGroup>
-            </GridSpan>
-
-            {/* THÁNG BẮT ĐẦU KHUI HỤI (1 CỘT) */}
-            <GridSpan columns={1}>
-              <Selector
-                label="Tháng bắt đầu khui hụi"
-                value={String(startMonth)}
-                onChange={(val) => setStartMonth(parseInt(val, 10))}
-                options={MONTH_OPTIONS}
+          {/* HÀNG 3 THÔNG SỐ TÀI CHÍNH: TỰ ĐỘNG THÍCH ỨNG MOBILE / TABLET / DESKTOP */}
+          <Grid columns={{ minWidth: 220, repeat: 'fit' }} gap={4}>
+            {/* TIỀN ĐÓNG MỖI CHÂN */}
+            <InputGroup label="Tiền đóng hụi mỗi chân">
+              <TextInput
+                label="Tiền đóng hụi mỗi chân"
+                isLabelHidden
+                value={formatNumberDots(amountPerSlot)}
+                onChange={(val) => {
+                  const clean = val.replace(/\D/g, '');
+                  setAmountPerSlot(clean ? parseInt(clean, 10) : 0);
+                }}
+                placeholder="3.000.000"
+                inputMode="numeric"
+                width="100%"
               />
-            </GridSpan>
+              <InputGroupText>₫</InputGroupText>
+            </InputGroup>
+
+            {/* BƯỚC NHẢY LÃI LŨY TIẾN */}
+            <InputGroup label="Mức tăng lãi mỗi kỳ (bước nhảy)">
+              <TextInput
+                label="Mức tăng lãi mỗi kỳ (bước nhảy)"
+                isLabelHidden
+                value={formatNumberDots(interestStep)}
+                onChange={(val) => {
+                  const clean = val.replace(/\D/g, '');
+                  setInterestStep(clean ? parseInt(clean, 10) : 0);
+                }}
+                placeholder="30.000"
+                inputMode="numeric"
+                width="100%"
+              />
+              <InputGroupText>₫</InputGroupText>
+            </InputGroup>
+
+            {/* THÁNG BẮT ĐẦU KHUI HỤI */}
+            <Selector
+              label="Tháng bắt đầu khui hụi"
+              value={String(startMonth)}
+              onChange={(val) => setStartMonth(parseInt(val, 10))}
+              options={MONTH_OPTIONS}
+              width="100%"
+            />
           </Grid>
 
           <Divider />
 
-          {/* 3. KHU VỰC 4 THẺ TÓM TẮT (SUMMARY CARDS) PHÂN CẤP RÕ RÀNG */}
+          {/* 3. KHU VỰC 4 THẺ TÓM TẮT (SUMMARY CARDS) PHÂN CẤP RÕ RÀNG VỚI SOFT PASTEL BADGES */}
           <Grid columns={{ minWidth: 220, max: 4, repeat: 'fit' }} gap={4}>
             {/* THẺ 1: TIỀN LỤM GỐC */}
             <Card variant="muted">
@@ -294,7 +308,7 @@ export function CalculatorTab() {
                   <Text type="supporting" color="secondary" size="sm">
                     Tiền lụm gốc / kỳ
                   </Text>
-                  <Badge label="Gốc cơ bản" variant="info" />
+                  <Badge label="Gốc cơ bản" variant="blue" />
                 </HStack>
                 <Heading level={2}>
                   {formatCurrency(matrix.basePot)}
@@ -312,7 +326,7 @@ export function CalculatorTab() {
                   <Text type="supporting" color="secondary" size="sm">
                     Mức tăng lãi mỗi kỳ
                   </Text>
-                  <Badge label="Lũy tiến" variant="warning" />
+                  <Badge label="Lũy tiến" variant="orange" />
                 </HStack>
                 <Heading level={2}>
                   +{formatCurrency(matrix.interestStep)}
@@ -350,7 +364,7 @@ export function CalculatorTab() {
                   <Text type="supporting" color="secondary" size="sm">
                     Kỳ cuối nhận ({lastWinner ? lastWinner.memberName : '—'})
                   </Text>
-                  <Badge label="Chót hụi" variant="success" />
+                  <Badge label="Chót hụi" variant="green" />
                 </HStack>
                 <Heading level={2}>
                   {lastWinner ? formatCurrency(lastWinner.wonAmount) : '—'}
@@ -365,7 +379,7 @@ export function CalculatorTab() {
           {/* BANNER GIẢI THÍCH QUY TẮC NHẬN TIỀN */}
           <Card variant="default">
             <HStack gap={3} vAlign="center">
-              <Icon icon={BanknotesIcon} size="md" />
+              <Icon icon={Coins} size="md" />
               <VStack gap={0.5}>
                 <Text weight="semibold">
                   Quy tắc nhận tiền tháng lụm ({matrix.totalMembers} người chơi • Đóng {formatCurrency(matrix.baseAmount)}/chân)

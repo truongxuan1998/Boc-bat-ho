@@ -8,6 +8,8 @@ import {
 } from '@astryxdesign/core/SegmentedControl';
 import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
+import { Icon } from '@astryxdesign/core/Icon';
+import { BarChart3, Users, Calculator } from 'lucide-react';
 import { SystemData, HuiGroup, BatHoLoan } from '@/types';
 import {
   loadSystemData,
@@ -38,6 +40,13 @@ export default function Home() {
   // Nạp dữ liệu khi render trên Client
   useEffect(() => {
     setIsClient(true);
+    // Hỗ trợ chọn tab qua URL query param (?tab=hui hoặc ?tab=calc)
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['overview', 'hui', 'calc'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+
     // 1. Tải tức thì từ LocalStorage (0ms)
     const local = loadSystemData();
     setData(local);
@@ -111,8 +120,9 @@ export default function Home() {
     return (
       <Layout
         height="fill"
+        contentWidth={1152}
         content={
-          <LayoutContent padding={6}>
+          <LayoutContent padding={4}>
             <VStack gap={4} hAlign="center" vAlign="center" minHeight="50vh">
               <Text>Đang tải dữ liệu Bốc Bát Họ...</Text>
             </VStack>
@@ -125,9 +135,10 @@ export default function Home() {
   return (
     <Layout
       height="fill"
+      contentWidth={1152}
       content={
-        <LayoutContent padding={6}>
-          <VStack gap={6}>
+        <LayoutContent padding={4}>
+          <VStack gap={6} width="100%">
             {/* Header Navigation */}
             <HeaderNav
               onOpenZaloModal={() => setIsZaloModalOpen(true)}
@@ -144,15 +155,18 @@ export default function Home() {
                 >
                   <SegmentedControlItem
                     value="overview"
-                    label="📊 Tổng Quan & Dòng Tiền"
+                    label="Tổng quan & dòng tiền"
+                    icon={<Icon icon={BarChart3} size="sm" />}
                   />
                   <SegmentedControlItem
                     value="hui"
-                    label="🤝 Quản Lý Dây Hụi"
+                    label="Quản lý dây hụi"
+                    icon={<Icon icon={Users} size="sm" />}
                   />
                   <SegmentedControlItem
                     value="calc"
-                    label="🧮 Máy Tính Dự Toán"
+                    label="Máy tính dự toán"
+                    icon={<Icon icon={Calculator} size="sm" />}
                   />
                 </SegmentedControl>
 

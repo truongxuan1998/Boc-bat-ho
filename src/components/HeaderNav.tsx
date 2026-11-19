@@ -7,14 +7,18 @@ import { Button } from '@astryxdesign/core/Button';
 import { Avatar } from '@astryxdesign/core/Avatar';
 import { Icon } from '@astryxdesign/core/Icon';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { Sun, Moon } from 'lucide-react';
+import { useThemeMode } from './AstryxProvider';
 
 interface HeaderNavProps {
   onOpenZaloModal: () => void;
 }
 
 export function HeaderNav({ onOpenZaloModal }: HeaderNavProps) {
+  const { mode, toggleTheme } = useThemeMode();
+
   return (
-    <VStack gap={4}>
+    <VStack gap={4} width="100%">
       <HStack hAlign="between" vAlign="center" wrap="wrap" gap={4}>
         <HStack gap={3} vAlign="center">
           <Avatar
@@ -28,14 +32,21 @@ export function HeaderNav({ onOpenZaloModal }: HeaderNavProps) {
           <VStack gap={0}>
             <Heading level={2}>BỐC BÁT HỌ</Heading>
             <Text type="supporting" color="secondary">
-              Hệ thống quản lý, tính toán & thống kê Hụi, Bát Họ thông minh
+              Hệ thống quản lý, tính toán & thống kê hụi, bát họ thông minh
             </Text>
           </VStack>
         </HStack>
 
         <HStack gap={2} vAlign="center" wrap="wrap">
           <Button
-            label="Xuất Báo Cáo Zalo"
+            label={mode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
+            variant="secondary"
+            size="md"
+            icon={<Icon icon={mode === 'dark' ? Sun : Moon} size="sm" />}
+            onClick={toggleTheme}
+          />
+          <Button
+            label="Xuất báo cáo Zalo"
             variant="primary"
             size="md"
             icon={<Icon icon={ChatBubbleLeftRightIcon} size="sm" />}

@@ -58,7 +58,9 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
         batHoLoans: cloudBatHo || localData.batHoLoans,
         lastUpdated: new Date().toISOString(),
       };
-      saveSystemData(updatedData);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData));
+      }
       return updatedData;
     }
 

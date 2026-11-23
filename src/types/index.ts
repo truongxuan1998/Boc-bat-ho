@@ -153,10 +153,42 @@ export interface SplitEvent extends Record<string, unknown> {
   createdAt: string;
 }
 
-// 4. TỔNG THỂ HỆ THỐNG
+// 4. QUỸ NHÓM (GÓP QUỸ ĐỊNH KỲ, CHI TỪ QUỸ)
+export interface FundRound extends Record<string, unknown> {
+  id: string;
+  title: string; // Vd: Tháng 12/2026
+  amountPerMember: number; // Mỗi người góp bao nhiêu trong đợt này
+  date: string; // Ngày mở đợt, YYYY-MM-DD
+  participants: string[]; // Ai phải góp đợt này (chốt lúc mở đợt)
+  paid: Record<string, string>; // Tên thành viên -> ngày đã góp (YYYY-MM-DD)
+  createdAt: string;
+}
+
+export interface FundExpense extends Record<string, unknown> {
+  id: string;
+  title: string; // Vd: Sinh nhật Trung
+  amount: number;
+  date: string; // YYYY-MM-DD
+  spentBy?: string; // Ai cầm tiền quỹ đi chi
+  createdAt: string;
+}
+
+export interface GroupFund extends Record<string, unknown> {
+  id: string;
+  name: string; // Vd: Quỹ hội bạn thân
+  members: string[]; // Tên thành viên (duy nhất trong một quỹ)
+  treasurer?: string; // Thủ quỹ
+  rounds: FundRound[];
+  expenses: FundExpense[];
+  status: 'ACTIVE' | 'DELETED';
+  createdAt: string;
+}
+
+// 5. TỔNG THỂ HỆ THỐNG
 export interface SystemData {
   huiGroups: HuiGroup[];
   batHoLoans: BatHoLoan[];
   splitEvents: SplitEvent[];
+  groupFunds: GroupFund[];
   lastUpdated: string;
 }

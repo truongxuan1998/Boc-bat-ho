@@ -193,3 +193,35 @@ begin
     alter publication supabase_realtime add table public.split_events;
   end if;
 end $$;
+
+-- 9. BẢNG QUỸ NHÓM (GÓP QUỸ ĐỊNH KỲ, CHI TỪ QUỸ)
+create table if not exists public.group_funds (
+  id text primary key,
+  name text not null,
+  members jsonb not null default '[]'::jsonb,
+  treasurer text,
+  rounds jsonb not null default '[]'::jsonb,
+  expenses jsonb not null default '[]'::jsonb,
+  status text not null default 'ACTIVE',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+grant all on table public.group_funds to anon, authenticated;
+alter table public.group_funds enable row level security;
+
+drop policy if exists "Allow public all group_funds" on public.group_funds;
+create policy "Allow public all group_funds" on public.group_funds
+  for all
+  using (true)
+  with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'group_funds'
+  ) then
+    alter publication supabase_realtime add table public.group_funds;
+  end if;
+end $$;

@@ -1,23 +1,27 @@
-import { SplitEvent, SystemData } from '@/types';
+import { SystemData } from '@/types';
 import {
   isSupabaseConfigured,
   fetchHuiGroupsFromCloud,
   fetchBatHoLoansFromCloud,
   fetchSplitEventsFromCloud,
+  fetchGroupFundsFromCloud,
   syncHuiGroupToCloud,
   syncBatHoLoanToCloud,
   syncSplitEventToCloud,
+  syncGroupFundToCloud,
 } from './supabaseClient';
 
 const STORAGE_KEY = 'BOC_BAT_HO_DATA_V1';
 const CLOUD_SYNC_INITIALIZED_KEY = 'BOC_BAT_HO_CLOUD_INITIALIZED_V1';
 const SPLIT_CLOUD_INITIALIZED_KEY = 'BOC_BAT_HO_SPLIT_CLOUD_INITIALIZED_V1';
+const FUND_CLOUD_INITIALIZED_KEY = 'BOC_BAT_HO_FUND_CLOUD_INITIALIZED_V1';
 
 export const emptySystemData: SystemData = {
   lastUpdated: new Date().toISOString(),
   huiGroups: [],
   batHoLoans: [],
   splitEvents: [],
+  groupFunds: [],
 };
 
 export function loadSystemData(): SystemData {
@@ -34,6 +38,7 @@ export function loadSystemData(): SystemData {
       huiGroups: parsed.huiGroups || [],
       batHoLoans: parsed.batHoLoans || [],
       splitEvents: parsed.splitEvents || [],
+      groupFunds: parsed.groupFunds || [],
       lastUpdated: parsed.lastUpdated || new Date().toISOString(),
     };
   } catch (e) {
@@ -49,10 +54,23 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
   const data = await loadHuiDataWithCloud();
   if (!isSupabaseConfigured()) return data;
 
-  const splitEvents = await resolveSplitEventsWithCloud(data.splitEvents);
-  if (splitEvents === data.splitEvents) return data;
+  const [splitEvents, groupFunds] = await Promise.all([
+    resolveDocsWithCloud(
+      data.splitEvents,
+      fetchSplitEventsFromCloud,
+      syncSplitEventToCloud,
+      SPLIT_CLOUD_INITIALIZED_KEY
+    ),
+    resolveDocsWithCloud(
+      data.groupFunds,
+      fetchGroupFundsFromCloud,
+      syncGroupFundToCloud,
+      FUND_CLOUD_INITIALIZED_KEY
+    ),
+  ]);
+  if (splitEvents === data.splitEvents && groupFunds === data.groupFunds) return data;
 
-  const merged: SystemData = { ...data, splitEvents };
+  const merged: SystemData = { ...data, splitEvents, groupFunds };
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
   }
@@ -61,20 +79,25 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
 
 // Cùng quy tắc với dây hụi: Cloud có dữ liệu (hoặc đã từng đồng bộ) thì lấy Cloud,
 // lần đầu Cloud trống thì đẩy dữ liệu trên máy lên. Bảng chưa tạo thì giữ dữ liệu máy.
-async function resolveSplitEventsWithCloud(local: SplitEvent[]): Promise<SplitEvent[]> {
-  const cloud = await fetchSplitEventsFromCloud();
+async function resolveDocsWithCloud<T>(
+  local: T[],
+  fetchAll: () => Promise<T[] | null>,
+  upsert: (doc: T) => Promise<boolean>,
+  initializedKey: string
+): Promise<T[]> {
+  const cloud = await fetchAll();
   if (!cloud) return local;
 
-  const initialized = localStorage.getItem(SPLIT_CLOUD_INITIALIZED_KEY) === 'true';
+  const initialized = localStorage.getItem(initializedKey) === 'true';
   if (cloud.length > 0 || initialized) {
-    localStorage.setItem(SPLIT_CLOUD_INITIALIZED_KEY, 'true');
+    localStorage.setItem(initializedKey, 'true');
     return cloud;
   }
   if (local.length > 0) {
-    for (const event of local) {
-      await syncSplitEventToCloud(event);
+    for (const doc of local) {
+      await upsert(doc);
     }
-    localStorage.setItem(SPLIT_CLOUD_INITIALIZED_KEY, 'true');
+    localStorage.setItem(initializedKey, 'true');
   }
   return local;
 }
@@ -100,6 +123,7 @@ async function loadHuiDataWithCloud(): Promise<SystemData> {
         huiGroups: cloudHui,
         batHoLoans: cloudBatHo || localData.batHoLoans,
         splitEvents: localData.splitEvents,
+        groupFunds: localData.groupFunds,
         lastUpdated: new Date().toISOString(),
       };
       if (typeof window !== 'undefined') {
@@ -119,6 +143,7 @@ async function loadHuiDataWithCloud(): Promise<SystemData> {
         huiGroups: [],
         batHoLoans: cloudBatHo || localData.batHoLoans,
         splitEvents: localData.splitEvents,
+        groupFunds: localData.groupFunds,
         lastUpdated: new Date().toISOString(),
       };
       if (typeof window !== 'undefined') {
@@ -157,6 +182,7 @@ export function saveSystemData(data: SystemData): void {
       data.huiGroups.forEach((h) => syncHuiGroupToCloud(h));
       data.batHoLoans.forEach((b) => syncBatHoLoanToCloud(b));
       data.splitEvents.forEach((e) => syncSplitEventToCloud(e));
+      data.groupFunds.forEach((f) => syncGroupFundToCloud(f));
     }
   } catch (e) {
     console.error('Lỗi khi lưu dữ liệu', e);

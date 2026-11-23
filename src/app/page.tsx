@@ -2,17 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Layout, LayoutContent, VStack, HStack } from '@astryxdesign/core/Layout';
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from '@astryxdesign/core/SegmentedControl';
+import { TabList, Tab } from '@astryxdesign/core/TabList';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
-import { BarChart3, Users, Calculator, Receipt } from 'lucide-react';
-import { SystemData, HuiGroup, SplitEvent } from '@/types';
+import { BarChart3, Users, Calculator, Receipt, PiggyBank } from 'lucide-react';
+import { SystemData, HuiGroup, SplitEvent, GroupFund } from '@/types';
 import {
   loadSystemData,
   loadSystemDataWithCloud,
@@ -25,10 +22,17 @@ import { DashboardOverview } from '@/components/DashboardOverview';
 import { HuiTab } from '@/components/HuiTab';
 import { CalculatorTab } from '@/components/CalculatorTab';
 import { SplitTab } from '@/components/SplitTab';
+import { FundTab } from '@/components/FundTab';
 import { ZaloExportModal } from '@/components/ZaloExportModal';
 import { AccessLogsModal } from '@/components/AccessLogsModal';
 
-const TABS = ['overview', 'hui', 'calc', 'split'] as const;
+const TABS = [
+  { value: 'overview', label: 'Tổng quan', icon: BarChart3 },
+  { value: 'hui', label: 'Dây hụi', icon: Users },
+  { value: 'calc', label: 'Dự toán', icon: Calculator },
+  { value: 'split', label: 'Chia tiền', icon: Receipt },
+  { value: 'fund', label: 'Quỹ nhóm', icon: PiggyBank },
+] as const;
 
 export default function Home() {
   const [data, setData] = useState<SystemData>(emptySystemData);
@@ -48,7 +52,7 @@ export default function Home() {
 
     // Chọn tab qua URL (?tab=hui hoặc ?tab=calc)
     const tabParam = new URLSearchParams(window.location.search).get('tab');
-    if (tabParam && (TABS as readonly string[]).includes(tabParam)) {
+    if (tabParam && TABS.some((t) => t.value === tabParam)) {
       setActiveTab(tabParam);
     }
 
@@ -83,6 +87,12 @@ export default function Home() {
     saveSystemData(updated);
   };
 
+  const handleUpdateGroupFunds = (funds: GroupFund[]) => {
+    const updated = { ...data, groupFunds: funds };
+    setData(updated);
+    saveSystemData(updated);
+  };
+
   // Xuất file JSON sao lưu
   const handleExportJson = () => {
     const jsonStr = JSON.stringify(data, null, 2);
@@ -109,34 +119,21 @@ export default function Home() {
             />
 
             <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-              <SegmentedControl
-                label="Chế độ làm việc"
+              <TabList
                 value={activeTab}
                 onChange={handleTabChange}
-                size={isCompact ? 'sm' : 'lg'}
-                layout={isCompact ? 'fill' : 'hug'}
+                size={isCompact ? 'md' : 'lg'}
+                aria-label="Chế độ làm việc"
               >
-                <SegmentedControlItem
-                  value="overview"
-                  label="Tổng quan"
-                  icon={isCompact ? undefined : <Icon icon={BarChart3} size="sm" />}
-                />
-                <SegmentedControlItem
-                  value="hui"
-                  label="Dây hụi"
-                  icon={isCompact ? undefined : <Icon icon={Users} size="sm" />}
-                />
-                <SegmentedControlItem
-                  value="calc"
-                  label="Dự toán"
-                  icon={isCompact ? undefined : <Icon icon={Calculator} size="sm" />}
-                />
-                <SegmentedControlItem
-                  value="split"
-                  label="Chia tiền"
-                  icon={isCompact ? undefined : <Icon icon={Receipt} size="sm" />}
-                />
-              </SegmentedControl>
+                {TABS.map((t) => (
+                  <Tab
+                    key={t.value}
+                    value={t.value}
+                    label={t.label}
+                    icon={<Icon icon={t.icon} size="sm" />}
+                  />
+                ))}
+              </TabList>
 
               {isClient && !isCompact && (
                 <Text type="supporting" color="secondary">
@@ -175,6 +172,12 @@ export default function Home() {
                   />
                 )}
                 {activeTab === 'calc' && <CalculatorTab />}
+                {activeTab === 'fund' && (
+                  <FundTab
+                    funds={data.groupFunds}
+                    onUpdateFunds={handleUpdateGroupFunds}
+                  />
+                )}
                 {activeTab === 'split' && (
                   <SplitTab
                     events={data.splitEvents}

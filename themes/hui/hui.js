@@ -215,7 +215,8 @@ export const huiTheme = {
     "--shadow-inset-success": "inset 0px 0px 0px 2px #2f7d334D",
     "--shadow-inset-warning": "inset 0px 0px 0px 2px #f8d36a4D",
     "--shadow-inset-error": "inset 0px 0px 0px 2px #de47454D",
-    "--focus-outline-color": "light-dark(#4f46e5, #96a2ff)"
+    "--focus-outline-color": "light-dark(#4f46e5, #96a2ff)",
+    "--size-element-lg": "44px"
   },
   localTokens: {
     "--astryx-theme-neutral-color-status-fill-accent": "light-dark(#0074e2, #6d9cfe)"

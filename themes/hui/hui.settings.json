@@ -46,6 +46,11 @@
       "value": "#0f141c",
       "source": "token",
       "mode": "dark"
+    },
+    {
+      "thing": "--size-element-lg",
+      "value": "44px",
+      "source": "token"
     }
   ],
   "lifted": [],

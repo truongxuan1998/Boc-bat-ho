@@ -10,19 +10,17 @@ import { Avatar } from '@astryxdesign/core/Avatar';
 import { Icon } from '@astryxdesign/core/Icon';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
-import { Sun, Moon, Download, ShieldCheck } from 'lucide-react';
+import { Sun, Moon, Download } from 'lucide-react';
 import { useThemeMode } from './AstryxProvider';
 
 interface HeaderNavProps {
   onOpenZaloModal: () => void;
   onExportJson: () => void;
-  onOpenAccessLogs?: () => void;
 }
 
 export function HeaderNav({
   onOpenZaloModal,
   onExportJson,
-  onOpenAccessLogs,
 }: HeaderNavProps) {
   const { mode, toggleTheme } = useThemeMode();
   const isCompact = useMediaQuery('(max-width: 640px)');
@@ -39,7 +37,11 @@ export function HeaderNav({
           tooltip={false}
         />
         <VStack gap={0}>
-          <Heading level={1} type="display-3">
+          <Heading
+            level={isCompact ? 3 : 1}
+            accessibilityLevel={1}
+            type={isCompact ? undefined : 'display-3'}
+          >
             Bốc Bát Họ
           </Heading>
           {!isCompact && (
@@ -51,38 +53,42 @@ export function HeaderNav({
       </HStack>
 
       <HStack gap={1} vAlign="center" wrap="nowrap">
-        <IconButton
-          label={mode === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
-          tooltip={mode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
-          variant="ghost"
-          icon={<Icon icon={mode === 'dark' ? Sun : Moon} />}
-          onClick={toggleTheme}
-        />
+        {/* Điện thoại: nút đổi sáng/tối nằm trong menu "…" để nhường chỗ cho tên app */}
+        {!isCompact && (
+          <IconButton
+            label={mode === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+            tooltip={mode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
+            variant="ghost"
+            icon={<Icon icon={mode === 'dark' ? Sun : Moon} />}
+            onClick={toggleTheme}
+          />
+        )}
         <MoreMenu
           label="Tùy chọn khác"
+          size={isCompact ? 'lg' : 'md'}
           alignment="end"
           presentation="adaptive"
           items={[
+            ...(isCompact
+              ? [
+                  {
+                    label: mode === 'dark' ? 'Chế độ sáng' : 'Chế độ tối',
+                    icon: <Icon icon={mode === 'dark' ? Sun : Moon} />,
+                    onClick: toggleTheme,
+                  },
+                ]
+              : []),
             {
               label: 'Sao lưu dữ liệu (JSON)',
               description: 'Tải toàn bộ dây hụi về máy',
               icon: <Icon icon={Download} />,
               onClick: onExportJson,
             },
-            ...(onOpenAccessLogs
-              ? [
-                  {
-                    label: 'Nhật ký truy cập (Logs)',
-                    description: 'Xem IP, vị trí và thiết bị người vào web',
-                    icon: <Icon icon={ShieldCheck} />,
-                    onClick: onOpenAccessLogs,
-                  },
-                ]
-              : []),
           ]}
         />
         <Button
           label="Gửi Zalo"
+          size={isCompact ? 'lg' : 'md'}
           variant="primary"
           isIconOnly={isCompact}
           icon={<Icon icon={ChatBubbleLeftRightIcon} />}

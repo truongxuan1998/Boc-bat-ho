@@ -44,7 +44,7 @@ export function HuiMatrixTable({
     {
       key: 'memberName',
       header: 'Thành viên',
-      width: pixel(124),
+      width: pixel(144),
       renderCell: (row) => (
         <VStack gap={0}>
           <Text weight="semibold" maxLines={1}>
@@ -63,7 +63,7 @@ export function HuiMatrixTable({
       key: `month_${idx}`,
       header: monthName,
       align: 'center',
-      width: pixel(116),
+      width: pixel(132),
       renderCell: (row) => {
         const cell = row.cells[idx];
         if (!cell) return <Text color="disabled">—</Text>;

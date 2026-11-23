@@ -139,7 +139,7 @@ export function DashboardOverview({ data, onGoToHui }: DashboardOverviewProps) {
 
   const kpis = [
     {
-      label: 'Tổng giá trị các dây',
+      label: 'Tổng giá trị',
       value: formatCurrency(totals.totalValue),
       icon: Wallet,
       iconColor: 'blue',

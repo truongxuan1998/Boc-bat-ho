@@ -86,6 +86,9 @@ function buildSplitMessage(event: SplitEvent, transfers: Transfer[]): string {
 export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
   const toast = useToast();
   const isCompact = useMediaQuery('(max-width: 640px)');
+  // Điện thoại: nút và ô chọn cỡ lớn cho dễ bấm
+  const ctl = isCompact ? 'lg' : 'md';
+  const rowCtl = isCompact ? 'lg' : 'sm';
   const [selectedId, setSelectedId] = useState<string>(events[0]?.id || '');
 
   // Dialog chuyến đi (tạo mới hoặc sửa)
@@ -346,6 +349,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
             actions={
               <Button
                 label="Tạo chuyến đầu tiên"
+                size={ctl}
                 variant="primary"
                 icon={<Icon icon={Plus} />}
                 onClick={openCreateEvent}
@@ -427,7 +431,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
               label={`Hoàn tác ${t.from} chuyển cho ${t.to}`}
               tooltip="Hoàn tác"
               icon={<Icon icon={RotateCcw} />}
-              size={isCompact ? 'md' : 'sm'}
+              size={rowCtl}
               variant="ghost"
               onClick={() => toggleTransfer(t)}
             />
@@ -436,7 +440,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
           <Button
             label="Đã chuyển"
             variant="primary"
-            size={isCompact ? 'md' : 'sm'}
+            size={rowCtl}
             icon={<Icon icon={Check} />}
             onClick={() => toggleTransfer(t)}
           />
@@ -488,20 +492,20 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
       key: 'actions',
       header: 'Sửa',
       align: 'end',
-      width: pixel(isCompact ? 92 : 84),
+      width: pixel(isCompact ? 100 : 84),
       renderCell: (e) => (
         <HStack gap={0.5} hAlign="end" wrap="nowrap">
           <IconButton
             label={`Sửa ${e.title}`}
             icon={<Icon icon={Pencil} />}
-            size={isCompact ? 'md' : 'sm'}
+            size={rowCtl}
             variant="ghost"
             onClick={() => openEditExpense(e)}
           />
           <IconButton
             label={`Xóa ${e.title}`}
             icon={<Icon icon={Trash2} />}
-            size={isCompact ? 'md' : 'sm'}
+            size={rowCtl}
             variant="ghost"
             onClick={() => setDeleteExpenseId(e.id)}
           />
@@ -567,6 +571,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
           <StackItem size={isCompact ? 'fill' : 'static'}>
             <Selector
               label="Chuyến đi"
+              size={ctl}
               value={current.id}
               options={eventOptions}
               onChange={setSelectedId}
@@ -576,12 +581,14 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
           <HStack gap={2} vAlign="center" wrap="nowrap">
             <Button
               label="Thêm khoản chi"
+              size={ctl}
               variant="primary"
               icon={<Icon icon={Plus} />}
               onClick={openAddExpense}
             />
             <Button
               label="Chuyến mới"
+              size={ctl}
               variant="secondary"
               isIconOnly={isCompact}
               icon={<Icon icon={Receipt} />}
@@ -589,6 +596,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
             />
             <MoreMenu
               label="Thao tác khác với chuyến đi"
+              size={ctl}
               variant="secondary"
               alignment="end"
               presentation="adaptive"
@@ -644,6 +652,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
             </VStack>
             <Button
               label="Sao chép gửi Zalo"
+              size={ctl}
               variant="secondary"
               icon={<Icon icon={Copy} />}
               onClick={copyMessage}

@@ -24,7 +24,6 @@ import { CalculatorTab } from '@/components/CalculatorTab';
 import { SplitTab } from '@/components/SplitTab';
 import { FundTab } from '@/components/FundTab';
 import { ZaloExportModal } from '@/components/ZaloExportModal';
-import { AccessLogsModal } from '@/components/AccessLogsModal';
 
 const TABS = [
   { value: 'overview', label: 'Tổng quan', icon: BarChart3 },
@@ -38,7 +37,6 @@ export default function Home() {
   const [data, setData] = useState<SystemData>(emptySystemData);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
-  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const isCompact = useMediaQuery('(max-width: 640px)');
 
@@ -115,14 +113,13 @@ export default function Home() {
             <HeaderNav
               onOpenZaloModal={() => setIsZaloModalOpen(true)}
               onExportJson={handleExportJson}
-              onOpenAccessLogs={() => setIsLogsModalOpen(true)}
             />
 
             <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
               <TabList
                 value={activeTab}
                 onChange={handleTabChange}
-                size={isCompact ? 'md' : 'lg'}
+                size="lg"
                 aria-label="Chế độ làm việc"
               >
                 {TABS.map((t) => (
@@ -191,11 +188,6 @@ export default function Home() {
               isOpen={isZaloModalOpen}
               onOpenChange={setIsZaloModalOpen}
               data={data}
-            />
-
-            <AccessLogsModal
-              isOpen={isLogsModalOpen}
-              onOpenChange={setIsLogsModalOpen}
             />
           </VStack>
         </LayoutContent>

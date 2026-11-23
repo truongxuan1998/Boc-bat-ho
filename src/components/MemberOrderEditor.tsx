@@ -12,6 +12,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { useToast } from '@astryxdesign/core/Toast';
+import { useMediaQuery } from '@astryxdesign/core/hooks';
 import { GripVertical, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 interface MemberOrderEditorProps {
@@ -47,6 +48,7 @@ export function MemberOrderEditor({
   getRemoveBlockReason,
 }: MemberOrderEditorProps) {
   const toast = useToast();
+  const isCompact = useMediaQuery('(max-width: 640px)');
   const [input, setInput] = useState('');
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
@@ -132,7 +134,7 @@ export function MemberOrderEditor({
                     <Token
                       key={`${name}-${idx}`}
                       label={name}
-                      size="md"
+                      size={isCompact ? 'lg' : 'md'}
                       onRemove={() => removeMember(idx)}
                     />
                   );
@@ -150,14 +152,14 @@ export function MemberOrderEditor({
                       icon={<Icon icon={GripVertical} size="xsm" color="secondary" />}
                       label={`${idx + 1}. ${name}`}
                       color={isFirst ? 'yellow' : isLast ? 'green' : 'default'}
-                      size="md"
+                      size={isCompact ? 'lg' : 'md'}
                       endContent={
                         <HStack gap={0.5} vAlign="center">
                           {!isFirst && (
                             <IconButton
                               label={`Chuyển ${name} lên kỳ trước`}
                               icon={<Icon icon={ChevronLeft} size="xsm" />}
-                              size="sm"
+                              size={isCompact ? 'md' : 'sm'}
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -169,7 +171,7 @@ export function MemberOrderEditor({
                             <IconButton
                               label={`Chuyển ${name} xuống kỳ sau`}
                               icon={<Icon icon={ChevronRight} size="xsm" />}
-                              size="sm"
+                              size={isCompact ? 'md' : 'sm'}
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();

@@ -89,6 +89,9 @@ interface HuiTabProps {
 export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   const toast = useToast();
   const isCompact = useMediaQuery('(max-width: 640px)');
+  // Điện thoại: nút và ô chọn cỡ lớn cho dễ bấm
+  const ctl = isCompact ? 'lg' : 'md';
+  const rowCtl = isCompact ? 'lg' : 'sm';
   const [selectedHuiId, setSelectedHuiId] = useState<string>(huiGroups[0]?.id || '');
 
   // Kỳ đang xem trong bảng điểm danh (null = kỳ mới nhất)
@@ -556,24 +559,27 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       renderCell: (p) => (
         <VStack gap={0}>
           <Text weight="semibold" maxLines={1}>{p.memberName}</Text>
+          {isCompact && (
+            <Text weight="semibold" hasTabularNumbers>{formatCurrency(p.amountToPay)}</Text>
+          )}
           <Text type="supporting" color="secondary">Chân #{p.slotNumber}</Text>
         </VStack>
       ),
     },
-    {
+    ...(isCompact ? [] : [{
       key: 'amountToPay',
       header: 'Phải đóng',
       align: 'end',
       width: proportional(1, { minWidth: 100 }),
-      renderCell: (p) => (
+      renderCell: (p: HuiPeriodPayment) => (
         <Text weight="semibold" hasTabularNumbers>{formatCurrency(p.amountToPay)}</Text>
       ),
-    },
+    }] as TableColumn<HuiPeriodPayment>[]),
     {
       key: 'status',
       header: 'Trạng thái',
       align: 'end',
-      width: pixel(124),
+      width: pixel(isCompact ? 156 : 132),
       renderCell: (p) =>
         p.isPaid ? (
           <HStack gap={1} vAlign="center" hAlign="end" wrap="nowrap">
@@ -582,7 +588,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               label={`Hoàn tác đã đóng của ${p.memberName}`}
               tooltip="Hoàn tác"
               icon={<Icon icon={RotateCcw} />}
-              size="sm"
+              size={rowCtl}
               variant="ghost"
               onClick={() => handleTogglePayment(activeIdx, p.slotId)}
             />
@@ -591,7 +597,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           <Button
             label="Đã thu"
             variant="primary"
-            size="sm"
+            size={rowCtl}
             icon={<Icon icon={CheckIcon} />}
             onClick={() => handleTogglePayment(activeIdx, p.slotId)}
           />
@@ -618,7 +624,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     {
       key: 'status',
       header: 'Tình trạng',
-      width: pixel(128),
+      width: pixel(140),
       renderCell: (s) =>
         s.isDead ? (
           <Badge label={`Lụm kỳ ${s.wonPeriod ?? ''}`} variant="neutral" />
@@ -626,7 +632,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           <Button
             label="Cho lụm"
             variant="secondary"
-            size="sm"
+            size={rowCtl}
             icon={<Icon icon={CalendarPlus} />}
             onClick={() => openKhuiDialog(s.slotId)}
           />
@@ -655,7 +661,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       key: 'netProfit',
       header: 'Dòng tiền hiện tại',
       align: 'end',
-      width: pixel(140),
+      width: pixel(160),
       renderCell: (s) => (
         <Text weight="semibold" hasTabularNumbers color={s.netProfit < 0 ? 'secondary' : 'primary'}>
           {signedCurrency(s.netProfit)}
@@ -677,7 +683,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     {
       key: 'qrCode',
       header: 'Mã QR',
-      width: pixel(104),
+      width: pixel(124),
       renderCell: (s) => {
         const slot = currentHui.slots.find((x) => x.id === s.slotId);
         const url = slot?.qrCodeUrl;
@@ -685,7 +691,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           <Button
             label="Xem QR"
             variant="secondary"
-            size="sm"
+            size={rowCtl}
             icon={<Icon icon={QrCodeIcon} />}
             onClick={() => openQr(s.slotId, s.memberName, url, false)}
           />
@@ -693,7 +699,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           <Button
             label="Tải QR"
             variant="ghost"
-            size="sm"
+            size={rowCtl}
             icon={<Icon icon={ArrowUpTrayIcon} />}
             onClick={() => openQr(s.slotId, s.memberName, undefined, true)}
           />
@@ -740,6 +746,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
           <StackItem size={isCompact ? 'fill' : 'static'}>
             <Selector
               label="Dây hụi"
+              size={ctl}
               value={currentHui.id}
               options={huiOptions}
               onChange={(id) => {
@@ -754,6 +761,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
             {livingSlots.length > 0 ? (
               <Button
                 label="Khui kỳ mới"
+                size={ctl}
                 variant="primary"
                 icon={<Icon icon={CalendarPlus} />}
                 onClick={() => openKhuiDialog()}
@@ -763,6 +771,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
             )}
             <Button
               label="Thêm dây"
+              size={ctl}
               variant="secondary"
               isIconOnly={isCompact}
               icon={<Icon icon={Plus} />}
@@ -770,6 +779,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
             />
             <MoreMenu
               label="Thao tác khác với dây hụi"
+              size={ctl}
               variant="secondary"
               alignment="end"
               presentation="adaptive"
@@ -845,6 +855,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               {periods.length > 1 && (
                 <Selector
                   label="Xem kỳ"
+                  size={ctl}
                   isLabelHidden
                   value={String(activeIdx)}
                   options={periodOptions}
@@ -885,6 +896,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               {isViewingLatest && (
                 <Button
                   label="Hoàn tác kỳ này"
+                  size={ctl}
                   variant="ghost"
                   icon={<Icon icon={RotateCcw} />}
                   onClick={() => setIsRevertConfirmOpen(true)}
@@ -892,6 +904,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               )}
               <Button
                 label={activeWinnerQr ? `QR của ${activePeriod.winnerName}` : 'Tải QR người lụm'}
+                size={ctl}
                 variant="secondary"
                 icon={<Icon icon={activeWinnerQr ? QrCodeIcon : ArrowUpTrayIcon} />}
                 onClick={() =>
@@ -900,6 +913,7 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               />
               <Button
                 label={activePeriod.isCompleted ? 'Hủy đã giao tiền' : 'Xác nhận đã giao tiền'}
+                size={ctl}
                 variant={activePeriod.isCompleted ? 'secondary' : 'primary'}
                 icon={<Icon icon={CheckIcon} />}
                 onClick={() => handleToggleWinnerPayout(activeIdx)}

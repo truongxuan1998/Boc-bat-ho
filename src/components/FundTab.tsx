@@ -98,6 +98,9 @@ function buildFundMessage(fund: GroupFund, round: FundRound | undefined): string
 export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
   const toast = useToast();
   const isCompact = useMediaQuery('(max-width: 640px)');
+  // Điện thoại: nút và ô chọn cỡ lớn cho dễ bấm
+  const ctl = isCompact ? 'lg' : 'md';
+  const rowCtl = isCompact ? 'lg' : 'sm';
   const [selectedId, setSelectedId] = useState<string>(funds[0]?.id || '');
   const [viewRoundIdx, setViewRoundIdx] = useState<number | null>(null);
 
@@ -408,7 +411,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
             title="Chưa có quỹ nào"
             description="Tạo quỹ cho nhóm, mở đợt thu hằng tháng, đánh dấu ai đã góp và ghi lại từng khoản chi từ quỹ."
             actions={
-              <Button label="Tạo quỹ đầu tiên" variant="primary" icon={<Icon icon={Plus} />} onClick={openCreateFund} />
+              <Button label="Tạo quỹ đầu tiên" size={ctl} variant="primary" icon={<Icon icon={Plus} />} onClick={openCreateFund} />
             }
           />
         </Card>
@@ -467,7 +470,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
       key: 'status',
       header: 'Trạng thái',
       align: 'end',
-      width: pixel(148),
+      width: pixel(isCompact ? 152 : 148),
       renderCell: (r) =>
         r.paidAt ? (
           <HStack gap={1} vAlign="center" hAlign="end" wrap="nowrap">
@@ -476,7 +479,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
               label={`Hoàn tác ${r.name} đã góp`}
               tooltip="Hoàn tác"
               icon={<Icon icon={RotateCcw} />}
-              size={isCompact ? 'md' : 'sm'}
+              size={rowCtl}
               variant="ghost"
               onClick={() => activeRound && togglePaid(activeRound.id, r.name)}
             />
@@ -485,7 +488,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
           <Button
             label="Đã góp"
             variant="primary"
-            size={isCompact ? 'md' : 'sm'}
+            size={rowCtl}
             icon={<Icon icon={Check} />}
             onClick={() => activeRound && togglePaid(activeRound.id, r.name)}
           />
@@ -535,20 +538,20 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
       key: 'actions',
       header: 'Sửa',
       align: 'end',
-      width: pixel(isCompact ? 92 : 84),
+      width: pixel(isCompact ? 100 : 84),
       renderCell: (e) => (
         <HStack gap={0.5} hAlign="end" wrap="nowrap">
           <IconButton
             label={`Sửa ${e.title}`}
             icon={<Icon icon={Pencil} />}
-            size={isCompact ? 'md' : 'sm'}
+            size={rowCtl}
             variant="ghost"
             onClick={() => openEditExpense(e)}
           />
           <IconButton
             label={`Xóa ${e.title}`}
             icon={<Icon icon={Trash2} />}
-            size={isCompact ? 'md' : 'sm'}
+            size={rowCtl}
             variant="ghost"
             onClick={() => setDeleteExpenseId(e.id)}
           />
@@ -622,7 +625,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
         <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
           <StackItem size={isCompact ? 'fill' : 'static'}>
             <Selector
-              label="Quỹ"
+              label="Quỹ" size={ctl}
               value={current.id}
               options={fundOptions}
               onChange={(id) => {
@@ -633,16 +636,16 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
             />
           </StackItem>
           <HStack gap={2} vAlign="center" wrap="nowrap">
-            <Button label="Mở đợt thu" variant="primary" icon={<Icon icon={HandCoins} />} onClick={openCreateRound} />
+            <Button label="Mở đợt thu" size={ctl} variant="primary" icon={<Icon icon={HandCoins} />} onClick={openCreateRound} />
             <Button
-              label="Ghi khoản chi"
+              label="Ghi khoản chi" size={ctl}
               variant="secondary"
               isIconOnly={isCompact}
               icon={<Icon icon={Wallet} />}
               onClick={openAddExpense}
             />
             <MoreMenu
-              label="Thao tác khác với quỹ"
+              label="Thao tác khác với quỹ" size={ctl}
               variant="secondary"
               alignment="end"
               presentation="adaptive"
@@ -710,7 +713,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
               <HStack gap={2} vAlign="center" wrap="wrap">
                 {rounds.length > 1 && (
                   <Selector
-                    label="Xem đợt"
+                    label="Xem đợt" size={ctl}
                     isLabelHidden
                     value={String(activeIdx)}
                     options={roundOptions}
@@ -719,7 +722,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
                   />
                 )}
                 <MoreMenu
-                  label="Thao tác với đợt thu"
+                  label="Thao tác với đợt thu" size={ctl}
                   alignment="end"
                   presentation="adaptive"
                   items={[
@@ -766,7 +769,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
 
             <HStack hAlign="end">
               <Button
-                label="Sao chép nhắc đóng quỹ"
+                label="Sao chép nhắc đóng quỹ" size={ctl}
                 variant="secondary"
                 icon={<Icon icon={Copy} />}
                 onClick={() => copyMessage(activeRound)}
@@ -780,7 +783,7 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
             title="Chưa có đợt thu"
             description="Mở đợt thu đầu tiên, ví dụ mỗi người góp 200.000 ₫ cho tháng này."
             actions={
-              <Button label="Mở đợt thu" variant="primary" icon={<Icon icon={Plus} />} onClick={openCreateRound} />
+              <Button label="Mở đợt thu" size={ctl} variant="primary" icon={<Icon icon={Plus} />} onClick={openCreateRound} />
             }
           />
         )}

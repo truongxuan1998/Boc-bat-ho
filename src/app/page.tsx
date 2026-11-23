@@ -6,16 +6,17 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from '@astryxdesign/core/SegmentedControl';
-import { Card } from '@astryxdesign/core/Card';
 import { Text } from '@astryxdesign/core/Text';
 import { Icon } from '@astryxdesign/core/Icon';
+import { Grid } from '@astryxdesign/core/Grid';
+import { Skeleton } from '@astryxdesign/core/Skeleton';
+import { useMediaQuery } from '@astryxdesign/core/hooks';
 import { BarChart3, Users, Calculator } from 'lucide-react';
-import { SystemData, HuiGroup, BatHoLoan } from '@/types';
+import { SystemData, HuiGroup } from '@/types';
 import {
   loadSystemData,
   loadSystemDataWithCloud,
   saveSystemData,
-  clearAllData,
   emptySystemData,
 } from '@/lib/storage';
 import { subscribeToRealtimeChanges } from '@/lib/supabaseClient';
@@ -24,49 +25,38 @@ import { DashboardOverview } from '@/components/DashboardOverview';
 import { HuiTab } from '@/components/HuiTab';
 import { CalculatorTab } from '@/components/CalculatorTab';
 import { ZaloExportModal } from '@/components/ZaloExportModal';
+import { AccessLogsModal } from '@/components/AccessLogsModal';
+
+const TABS = ['overview', 'hui', 'calc'] as const;
 
 export default function Home() {
   const [data, setData] = useState<SystemData>(emptySystemData);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const isCompact = useMediaQuery('(max-width: 640px)');
 
-  // Hàm tải dữ liệu Cloud
   const refreshCloudData = useCallback(async () => {
     const cloudData = await loadSystemDataWithCloud();
     setData(cloudData);
   }, []);
 
-  // Nạp dữ liệu khi render trên Client
   useEffect(() => {
     setIsClient(true);
-    // Hỗ trợ chọn tab qua URL query param (?tab=hui hoặc ?tab=calc)
-    const searchParams = new URLSearchParams(window.location.search);
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['overview', 'hui', 'calc'].includes(tabParam)) {
+
+    // Chọn tab qua URL (?tab=hui hoặc ?tab=calc)
+    const tabParam = new URLSearchParams(window.location.search).get('tab');
+    if (tabParam && (TABS as readonly string[]).includes(tabParam)) {
       setActiveTab(tabParam);
     }
 
-    // 1. Tải tức thì từ LocalStorage (0ms)
-    const local = loadSystemData();
-    setData(local);
-
-    // 2. Tải và đồng bộ với Supabase Cloud
+    // 1. Tải tức thì từ LocalStorage, 2. đồng bộ Supabase, 3. lắng nghe Realtime
+    setData(loadSystemData());
     refreshCloudData();
-
-    // 3. Đăng ký lắng nghe Realtime từ Supabase
     const unsubscribe = subscribeToRealtimeChanges(() => {
       refreshCloudData();
     });
-
-    // 4. Đọc URL param ?tab=
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      if (tabParam && ['overview', 'hui', 'calc'].includes(tabParam)) {
-        setActiveTab(tabParam);
-      }
-    }
 
     return () => {
       unsubscribe();
@@ -75,36 +65,18 @@ export default function Home() {
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('tab', newTab);
-      window.history.replaceState({}, '', url.toString());
-    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', newTab);
+    window.history.replaceState({}, '', url.toString());
   };
 
-  // Lưu dữ liệu mỗi khi state thay đổi
   const handleUpdateHuiGroups = (groups: HuiGroup[]) => {
     const updated = { ...data, huiGroups: groups };
     setData(updated);
     saveSystemData(updated);
   };
 
-  const handleUpdateBatHoLoans = (loans: BatHoLoan[]) => {
-    const updated = { ...data, batHoLoans: loans };
-    setData(updated);
-    saveSystemData(updated);
-  };
-
-  // Xóa trắng toàn bộ dữ liệu
-  const handleResetData = () => {
-    if (confirm('Bạn có chắc muốn xóa trắng toàn bộ dữ liệu để bắt đầu mới?')) {
-      setData(emptySystemData);
-      clearAllData();
-      saveSystemData(emptySystemData);
-    }
-  };
-
-  // Xuất file JSON backup
+  // Xuất file JSON sao lưu
   const handleExportJson = () => {
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -116,81 +88,93 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  if (!isClient) {
-    return (
-      <Layout
-        height="fill"
-        contentWidth={1152}
-        content={
-          <LayoutContent padding={4}>
-            <VStack gap={4} hAlign="center" vAlign="center" minHeight="50vh">
-              <Text>Đang tải dữ liệu Bốc Bát Họ...</Text>
-            </VStack>
-          </LayoutContent>
-        }
-      />
-    );
-  }
-
   return (
     <Layout
-      height="fill"
+      height="auto"
       contentWidth={1152}
       content={
-        <LayoutContent padding={4}>
-          <VStack gap={6} width="100%">
-            {/* Header Navigation */}
+        <LayoutContent padding={isCompact ? 3 : 5} isScrollable={false}>
+          <VStack gap={isCompact ? 4 : 6} width="100%">
             <HeaderNav
               onOpenZaloModal={() => setIsZaloModalOpen(true)}
+              onExportJson={handleExportJson}
+              onOpenAccessLogs={() => setIsLogsModalOpen(true)}
             />
 
-            {/* Thanh điều hướng tab chính */}
-            <Card>
-              <HStack hAlign="between" vAlign="center" wrap="wrap" gap={4}>
-                <SegmentedControl
-                  label="Chế độ làm việc"
-                  value={activeTab}
-                  onChange={handleTabChange}
-                  size="md"
-                >
-                  <SegmentedControlItem
-                    value="overview"
-                    label="Tổng quan & dòng tiền"
-                    icon={<Icon icon={BarChart3} size="sm" />}
-                  />
-                  <SegmentedControlItem
-                    value="hui"
-                    label="Quản lý dây hụi"
-                    icon={<Icon icon={Users} size="sm" />}
-                  />
-                  <SegmentedControlItem
-                    value="calc"
-                    label="Máy tính dự toán"
-                    icon={<Icon icon={Calculator} size="sm" />}
-                  />
-                </SegmentedControl>
+            <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
+              <SegmentedControl
+                label="Chế độ làm việc"
+                value={activeTab}
+                onChange={handleTabChange}
+                size={isCompact ? 'md' : 'lg'}
+                layout={isCompact ? 'fill' : 'hug'}
+              >
+                <SegmentedControlItem
+                  value="overview"
+                  label="Tổng quan"
+                  icon={<Icon icon={BarChart3} size="sm" />}
+                />
+                <SegmentedControlItem
+                  value="hui"
+                  label="Dây hụi"
+                  icon={<Icon icon={Users} size="sm" />}
+                />
+                <SegmentedControlItem
+                  value="calc"
+                  label="Dự toán"
+                  icon={<Icon icon={Calculator} size="sm" />}
+                />
+              </SegmentedControl>
 
+              {isClient && !isCompact && (
                 <Text type="supporting" color="secondary">
-                  Cập nhật: {new Date(data.lastUpdated).toLocaleDateString('vi-VN')}
+                  Cập nhật lần cuối {new Date(data.lastUpdated).toLocaleString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
                 </Text>
-              </HStack>
-            </Card>
+              )}
+            </HStack>
 
-            {/* Nội dung tab tương ứng */}
-            {activeTab === 'overview' && <DashboardOverview data={data} />}
-            {activeTab === 'hui' && (
-              <HuiTab
-                huiGroups={data.huiGroups}
-                onUpdateHuiGroups={handleUpdateHuiGroups}
-              />
+            {!isClient ? (
+              <VStack gap={4}>
+                <Grid columns={{ minWidth: 160, repeat: 'fit' }} gap={4}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <Skeleton key={i} index={i} height={128} />
+                  ))}
+                </Grid>
+                <Skeleton index={4} height={320} />
+              </VStack>
+            ) : (
+              <>
+                {activeTab === 'overview' && (
+                  <DashboardOverview
+                    data={data}
+                    onGoToHui={() => handleTabChange('hui')}
+                  />
+                )}
+                {activeTab === 'hui' && (
+                  <HuiTab
+                    huiGroups={data.huiGroups}
+                    onUpdateHuiGroups={handleUpdateHuiGroups}
+                  />
+                )}
+                {activeTab === 'calc' && <CalculatorTab />}
+              </>
             )}
-            {activeTab === 'calc' && <CalculatorTab />}
 
-            {/* Modal Xuất Báo Cáo Zalo */}
             <ZaloExportModal
               isOpen={isZaloModalOpen}
               onOpenChange={setIsZaloModalOpen}
               data={data}
+            />
+
+            <AccessLogsModal
+              isOpen={isLogsModalOpen}
+              onOpenChange={setIsLogsModalOpen}
             />
           </VStack>
         </LayoutContent>

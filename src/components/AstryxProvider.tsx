@@ -32,11 +32,19 @@ export function AstryxProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+    let initialMode: ThemeMode = 'light';
     if (saved && ['light', 'dark', 'system'].includes(saved)) {
-      setModeState(saved);
+      initialMode = saved;
     } else if (typeof window !== 'undefined') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setModeState(prefersDark ? 'dark' : 'light');
+      initialMode = prefersDark ? 'dark' : 'light';
+    }
+    setModeState(initialMode);
+    document.documentElement.setAttribute('data-theme', initialMode);
+    document.documentElement.style.backgroundColor = initialMode === 'dark' ? '#0f141c' : '#f3f5f9';
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', initialMode === 'dark' ? '#0f141c' : '#f3f5f9');
     }
   }, []);
 
@@ -44,6 +52,12 @@ export function AstryxProvider({ children }: { children: React.ReactNode }) {
     setModeState(newMode);
     if (typeof window !== 'undefined') {
       localStorage.setItem(THEME_STORAGE_KEY, newMode);
+      document.documentElement.setAttribute('data-theme', newMode);
+      document.documentElement.style.backgroundColor = newMode === 'dark' ? '#0f141c' : '#f3f5f9';
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', newMode === 'dark' ? '#0f141c' : '#f3f5f9');
+      }
     }
   };
 

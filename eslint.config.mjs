@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Theme do `astryx experimental theme editor` sinh ra, không sửa tay
+    "src/themes/**",
+    "themes/**",
   ]),
 ]);
 

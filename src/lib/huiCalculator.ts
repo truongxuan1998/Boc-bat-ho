@@ -107,7 +107,7 @@ export function generateProgressiveMatrix(
   const months: string[] = [];
   for (let i = 0; i < totalMembers; i++) {
     const m = ((startMonth - 1 + i) % 12) + 1;
-    months.push(`THÁNG ${m}`);
+    months.push(`Tháng ${m}`);
   }
 
   const rows: ProgressiveHuiMemberRow[] = members.map((name, memberIndex) => {
@@ -140,11 +140,7 @@ export function generateProgressiveMatrix(
         wonBonus = ((turnIndex - 1) * turnIndex) / 2 * interestStep;
         const totalReceived = basePot + wonBonus;
         const label =
-          wonBonus > 0
-            ? interestStep >= 1000
-              ? `LỤM + ${new Intl.NumberFormat('vi-VN').format(wonBonus)} đ`
-              : `LỤM+${wonBonus}`
-            : 'LỤM';
+          wonBonus > 0 ? `Lụm +${formatCurrency(wonBonus)}` : 'Lụm';
         cells.push({
           monthIndex: monthIdx,
           monthName,
@@ -162,10 +158,7 @@ export function generateProgressiveMatrix(
         const toPay = amountPerSlot + extraInterest;
         totalInterestPaid += extraInterest;
         totalPaid += toPay;
-        const deadLabel =
-          interestStep >= 1000
-            ? `-${new Intl.NumberFormat('vi-VN').format(extraInterest)} đ`
-            : `-${extraInterest}`;
+        const deadLabel = `Bù ${formatCurrency(extraInterest)}`;
         cells.push({
           monthIndex: monthIdx,
           monthName,

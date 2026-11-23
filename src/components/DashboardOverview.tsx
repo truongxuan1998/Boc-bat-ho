@@ -1,19 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { VStack, HStack } from '@astryxdesign/core/Layout';
 import { Heading, Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
 import { ProgressBar } from '@astryxdesign/core/ProgressBar';
-import {
-  Wallet,
-  CheckCircle2,
-  AlertCircle,
-  CalendarClock,
-} from 'lucide-react';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Table, TableColumn, pixel, proportional } from '@astryxdesign/core/Table';
+import { useMediaQuery } from '@astryxdesign/core/hooks';
+import { Wallet, CheckCircle2, AlertCircle, CalendarClock, Plus, Users } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -22,244 +22,337 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
-import { SystemData } from '@/types';
-import { formatCurrency } from '@/lib/huiCalculator';
+import { SystemData, HuiGroup } from '@/types';
+import { formatCurrency, generateProgressiveMatrix } from '@/lib/huiCalculator';
+import { formatDateVi } from '@/lib/format';
 
 interface DashboardOverviewProps {
   data: SystemData;
+  onGoToHui: () => void;
 }
 
-export function DashboardOverview({ data }: DashboardOverviewProps) {
-  // 1. Tính toán thống kê Hụi
-  let totalHuiFund = 0;
-  let totalHuiCollected = 0;
-  let totalHuiDebt = 0;
-  let totalUnpaidSlots = 0;
-  let totalPeriodsOpened = 0;
-  let totalSlotsCount = 0;
+interface GroupSummary extends Record<string, unknown> {
+  id: string;
+  name: string;
+  totalValue: number; // Tổng tiền góp của cả chu kỳ dây hụi
+  collected: number; // Đã thu trong các kỳ đã khui
+  debt: number; // Còn nợ trong các kỳ đã khui
+  periodsOpened: number;
+  totalSlots: number;
+  latestDate?: string;
+  latestWinner?: string;
+}
 
-  for (const hui of data.huiGroups) {
-    totalHuiFund += hui.amountPerSlot * hui.totalSlots;
-    totalSlotsCount += hui.totalSlots;
-    totalPeriodsOpened += hui.periods?.length || 0;
-    for (const period of hui.periods || []) {
-      for (const p of period.payments) {
-        if (p.isPaid) {
-          totalHuiCollected += p.amountToPay;
-        } else {
-          totalHuiDebt += p.amountToPay;
-          totalUnpaidSlots++;
-        }
-      }
+// Tổng tiền góp cả chu kỳ = tổng số tiền tất cả các kỳ lụm (gốc + lãi lũy tiến)
+function summarizeGroup(hui: HuiGroup): GroupSummary {
+  const matrix = generateProgressiveMatrix(
+    hui.slots.map((s) => s.memberName),
+    hui.startMonth || 4,
+    hui.interestStep ?? 0,
+    hui.amountPerSlot
+  );
+  const totalValue = matrix.members.reduce((sum, m) => sum + m.wonAmount, 0);
+
+  let collected = 0;
+  let debt = 0;
+  for (const period of hui.periods || []) {
+    for (const p of period.payments) {
+      if (p.isPaid) collected += p.amountToPay;
+      else debt += p.amountToPay;
     }
   }
+  const latest = hui.periods?.[hui.periods.length - 1];
 
-  // Dữ liệu biểu đồ phân tích theo từng dây hụi (Đơn vị triệu ₫)
-  const chartData =
-    data.huiGroups.length > 0
-      ? data.huiGroups.map((g) => {
-          let col = 0;
-          let debt = 0;
-          for (const period of g.periods || []) {
-            for (const p of period.payments) {
-              if (p.isPaid) {
-                col += p.amountToPay;
-              } else {
-                debt += p.amountToPay;
-              }
-            }
+  return {
+    id: hui.id,
+    name: hui.name,
+    totalValue,
+    collected,
+    debt,
+    periodsOpened: hui.periods?.length || 0,
+    totalSlots: hui.totalSlots,
+    latestDate: latest?.openDate,
+    latestWinner: latest?.winnerName,
+  };
+}
+
+// Làm tròn về đơn vị triệu, giữ 1 chữ số thập phân
+const toMillions = (v: number) => Math.round(v / 100000) / 10;
+
+const CHART_SERIES = [
+  { key: 'tongGiaTri', name: 'Tổng giá trị dây', color: 'var(--color-accent)', dot: 'accent' },
+  { key: 'daThu', name: 'Đã thu', color: 'var(--color-success)', dot: 'success' },
+  { key: 'conNo', name: 'Còn nợ', color: 'var(--color-warning)', dot: 'warning' },
+] as const;
+
+export function DashboardOverview({ data, onGoToHui }: DashboardOverviewProps) {
+  const isCompact = useMediaQuery('(max-width: 640px)');
+  const summaries = useMemo(() => data.huiGroups.map(summarizeGroup), [data.huiGroups]);
+
+  if (summaries.length === 0) {
+    return (
+      <Card padding={8}>
+        <EmptyState
+          icon={<Icon icon={Users} size="lg" />}
+          title="Chưa có dây hụi nào"
+          description="Tạo dây hụi đầu tiên để bắt đầu theo dõi tiền đóng, kỳ khui và lãi lũy tiến của từng thành viên."
+          actions={
+            <Button
+              label="Tạo dây hụi"
+              variant="primary"
+              icon={<Icon icon={Plus} />}
+              onClick={onGoToHui}
+            />
           }
-          return {
-            category: g.name,
-            tongVon: Math.round((g.amountPerSlot * g.totalSlots) / 1000000),
-            daThu: Math.round(col / 1000000),
-            conNo: Math.round(debt / 1000000),
-          };
-        })
-      : [
-          {
-            category: 'Chưa có dây hụi',
-            tongVon: 0,
-            daThu: 0,
-            conNo: 0,
-          },
-        ];
+        />
+      </Card>
+    );
+  }
+
+  const totals = summaries.reduce(
+    (acc, s) => ({
+      totalValue: acc.totalValue + s.totalValue,
+      collected: acc.collected + s.collected,
+      debt: acc.debt + s.debt,
+      periodsOpened: acc.periodsOpened + s.periodsOpened,
+      totalSlots: acc.totalSlots + s.totalSlots,
+    }),
+    { totalValue: 0, collected: 0, debt: 0, periodsOpened: 0, totalSlots: 0 }
+  );
+  const unpaidCount = data.huiGroups.reduce(
+    (n, h) =>
+      n + (h.periods || []).reduce((m, p) => m + p.payments.filter((x) => !x.isPaid).length, 0),
+    0
+  );
+  const collectedPct = totals.totalValue > 0 ? Math.round((totals.collected / totals.totalValue) * 100) : 0;
+  const progressPct = totals.totalSlots > 0 ? Math.round((totals.periodsOpened / totals.totalSlots) * 100) : 0;
+
+  const chartData = summaries.map((s) => ({
+    category: s.name,
+    tongGiaTri: toMillions(s.totalValue),
+    daThu: toMillions(s.collected),
+    conNo: toMillions(s.debt),
+  }));
+
+  const valueSize = isCompact ? 'xl' : '2xl';
+
+  const kpis = [
+    {
+      label: 'Tổng giá trị các dây',
+      value: formatCurrency(totals.totalValue),
+      icon: Wallet,
+      iconColor: 'blue',
+      footer: (
+        <Text type="supporting" color="secondary">
+          {summaries.length} dây · tính trọn chu kỳ
+        </Text>
+      ),
+    },
+    {
+      label: 'Đã thu',
+      value: formatCurrency(totals.collected),
+      icon: CheckCircle2,
+      iconColor: 'green',
+      footer: (
+        <Text type="supporting" color="secondary">
+          {collectedPct}% tổng giá trị
+        </Text>
+      ),
+    },
+    {
+      label: 'Còn phải thu',
+      value: formatCurrency(totals.debt),
+      icon: AlertCircle,
+      iconColor: 'orange',
+      footer:
+        unpaidCount > 0 ? (
+          <Badge label={`${unpaidCount} lượt chưa đóng`} variant="orange" />
+        ) : (
+          <Text type="supporting" color="secondary">
+            Không có khoản nợ
+          </Text>
+        ),
+    },
+    {
+      label: 'Tiến độ khui',
+      value: `${totals.periodsOpened}/${totals.totalSlots} kỳ`,
+      icon: CalendarClock,
+      iconColor: 'purple',
+      footer: (
+        <ProgressBar
+          label="Tiến độ khui hụi"
+          isLabelHidden
+          value={totals.periodsOpened}
+          max={totals.totalSlots || 1}
+          variant="accent"
+        />
+      ),
+      sub: `${progressPct}%`,
+    },
+  ] as const;
+
+  const groupColumns: TableColumn<GroupSummary>[] = [
+    {
+      key: 'name',
+      header: 'Dây hụi',
+      width: proportional(2, { minWidth: 140 }),
+      renderCell: (s) => (
+        <VStack gap={0}>
+          <Text weight="semibold" maxLines={1}>
+            {s.name}
+          </Text>
+          <Text type="supporting" color="secondary">
+            {isCompact
+              ? `Đã thu ${formatCurrency(s.collected)}${s.debt > 0 ? ` · nợ ${formatCurrency(s.debt)}` : ''}`
+              : s.latestWinner
+              ? `Kỳ gần nhất ${formatDateVi(s.latestDate)} · ${s.latestWinner}`
+              : 'Chưa khui kỳ nào'}
+          </Text>
+        </VStack>
+      ),
+    },
+    {
+      key: 'progress',
+      header: 'Tiến độ',
+      width: proportional(1.5, { minWidth: 96 }),
+      renderCell: (s) => (
+        <VStack gap={1}>
+          <Text type="supporting" hasTabularNumbers>
+            {s.periodsOpened}/{s.totalSlots} kỳ
+          </Text>
+          <ProgressBar
+            label={`Tiến độ ${s.name}`}
+            isLabelHidden
+            value={s.periodsOpened}
+            max={s.totalSlots || 1}
+            variant={s.periodsOpened === s.totalSlots ? 'success' : 'accent'}
+          />
+        </VStack>
+      ),
+    },
+    {
+      key: 'collected',
+      header: 'Đã thu',
+      align: 'end',
+      width: pixel(130),
+      renderCell: (s) => <Text hasTabularNumbers>{formatCurrency(s.collected)}</Text>,
+    },
+    {
+      key: 'debt',
+      header: 'Còn nợ',
+      align: 'end',
+      width: pixel(130),
+      renderCell: (s) =>
+        s.debt > 0 ? (
+          <Text weight="semibold" hasTabularNumbers>
+            {formatCurrency(s.debt)}
+          </Text>
+        ) : (
+          <Text color="secondary">—</Text>
+        ),
+    },
+  ];
 
   return (
-    <VStack gap={6}>
-      {/* 4 THẺ CHỈ SỐ KPI CHÍNH */}
-      <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4}>
-        {/* THẺ 1: TỔNG VỐN DÂY HỤI */}
-        <Card>
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Tổng vốn các dây hụi
-              </Text>
-              <Card variant="muted" padding={1.5}>
-                <Icon icon={Wallet} size="md" color="blue" />
-              </Card>
-            </HStack>
-            <Heading level={3}>
-              <Text size="2xl" weight="bold" hasTabularNumbers>
-                {formatCurrency(totalHuiFund)}
-              </Text>
-            </Heading>
-            <Text type="supporting" color="secondary">
-              {data.huiGroups.length} dây hụi đang hoạt động
-            </Text>
-          </VStack>
-        </Card>
-
-        {/* THẺ 2: TỔNG TIỀN ĐÃ THU */}
-        <Card>
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Tổng tiền đã thu
-              </Text>
-              <Card variant="muted" padding={1.5}>
-                <Icon icon={CheckCircle2} size="md" color="green" />
-              </Card>
-            </HStack>
-            <Heading level={3}>
-              <Text size="2xl" weight="bold" hasTabularNumbers>
-                {formatCurrency(totalHuiCollected)}
-              </Text>
-            </Heading>
-            <Text type="supporting" color="secondary">
-              Các chân hụi đã đóng hoàn tất
-            </Text>
-          </VStack>
-        </Card>
-
-        {/* THẺ 3: DƯ NỢ CÒN PHẢI THU */}
-        <Card>
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Dư nợ còn phải thu
-              </Text>
-              <Card variant="muted" padding={1.5}>
-                <Icon icon={AlertCircle} size="md" color="orange" />
-              </Card>
-            </HStack>
-            <Heading level={3}>
-              <Text size="2xl" weight="bold" hasTabularNumbers>
-                {formatCurrency(totalHuiDebt)}
-              </Text>
-            </Heading>
-            <HStack gap={2} vAlign="center" wrap="wrap">
-              <Text type="supporting" color="secondary">
-                {totalHuiDebt > 0 ? 'Cần đôn đốc nhắc nhở' : 'Chưa có khoản nợ cần thu'}
-              </Text>
-              {totalUnpaidSlots > 0 && (
-                <Badge label={`${totalUnpaidSlots} chân chưa đóng`} variant="orange" />
-              )}
-            </HStack>
-          </VStack>
-        </Card>
-
-        {/* THẺ 4: TIẾN ĐỘ KHUI HỤI KÈM PROGRESS BAR */}
-        <Card>
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Tiến độ khui hụi
-              </Text>
-              <Card variant="muted" padding={1.5}>
-                <Icon icon={CalendarClock} size="md" color="purple" />
-              </Card>
-            </HStack>
-            <Heading level={3}>
-              <Text size="2xl" weight="bold" hasTabularNumbers>
-                {totalPeriodsOpened} / {totalSlotsCount} kỳ
-              </Text>
-            </Heading>
-            <VStack gap={1}>
-              <ProgressBar
-                label="Tiến độ khui hụi"
-                isLabelHidden
-                value={totalPeriodsOpened}
-                max={totalSlotsCount > 0 ? totalSlotsCount : 1}
-                variant="accent"
-              />
-              <Text type="supporting" color="secondary">
-                {totalSlotsCount > 0
-                  ? `Đạt ${Math.round((totalPeriodsOpened / totalSlotsCount) * 100)}% tổng số kỳ`
-                  : 'Chưa có dây hụi nào'}
-              </Text>
+    <VStack gap={isCompact ? 4 : 6}>
+      <Grid columns={{ minWidth: isCompact ? 150 : 220, repeat: 'fit' }} gap={isCompact ? 3 : 4}>
+        {kpis.map((k) => (
+          <Card key={k.label}>
+            <VStack gap={3}>
+              <HStack hAlign="between" vAlign="center" gap={2} wrap="nowrap">
+                <Text type="supporting" color="secondary" maxLines={1}>
+                  {k.label}
+                </Text>
+                <Icon icon={k.icon} size="md" color={k.iconColor} />
+              </HStack>
+              <HStack vAlign="end" gap={2} wrap="nowrap">
+                <Text size={valueSize} weight="bold" hasTabularNumbers maxLines={1}>
+                  {k.value}
+                </Text>
+                {'sub' in k && (
+                  <Text type="supporting" color="secondary">
+                    {k.sub}
+                  </Text>
+                )}
+              </HStack>
+              {k.footer}
             </VStack>
-          </VStack>
-        </Card>
+          </Card>
+        ))}
       </Grid>
 
-      {/* BIỂU ĐỒ DÒNG TIỀN PHÂN TÍCH */}
       <Card>
         <VStack gap={4}>
-          <HStack hAlign="between" vAlign="center" wrap="wrap">
+          <HStack hAlign="between" vAlign="start" wrap="wrap" gap={3}>
             <VStack gap={1}>
-              <Heading level={4}>Thống kê dòng tiền dây hụi (triệu ₫)</Heading>
+              <Heading level={2}>Dòng tiền theo dây hụi</Heading>
               <Text type="supporting" color="secondary">
-                Biểu đồ phân bổ nguồn vốn, số tiền đã thu hồi và dư nợ còn lại theo từng dây hụi
+                Đơn vị: triệu ₫. Tổng giá trị tính trọn chu kỳ; đã thu và còn nợ tính trên các kỳ đã khui.
               </Text>
             </VStack>
+            <HStack gap={4} vAlign="center" wrap="wrap">
+              {CHART_SERIES.map((s) => (
+                <HStack key={s.key} gap={1.5} vAlign="center">
+                  <StatusDot variant={s.dot} label={s.name} />
+                  <Text type="supporting">{s.name}</Text>
+                </HStack>
+              ))}
+            </HStack>
           </HStack>
 
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart
-              data={chartData}
-              margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.7} />
+          <ResponsiveContainer width="100%" height={isCompact ? 220 : 280}>
+            <BarChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }} barGap={4}>
+              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--color-border)" />
               <XAxis
                 dataKey="category"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748b', fontSize: 13 }}
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: 13 }}
               />
               <YAxis
                 unit=" tr"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748b', fontSize: 12 }}
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: 12 }}
               />
-              <Tooltip formatter={(value) => [`${value} triệu ₫`]} />
-              <Bar
-                dataKey="tongVon"
-                name="Tổng vốn dây"
-                fill="#3b82f6"
-                maxBarSize={44}
-                radius={[6, 6, 0, 0]}
-                isAnimationActive={false}
+              <Tooltip
+                cursor={{ fill: 'var(--color-accent-muted)', opacity: 0.4 }}
+                formatter={(value) => `${value} triệu ₫`}
+                contentStyle={{
+                  backgroundColor: 'var(--color-background-card)',
+                  borderColor: 'var(--color-border)',
+                  color: 'var(--color-text-primary)',
+                  borderRadius: 'var(--radius-element)',
+                }}
+                labelStyle={{ color: 'var(--color-text-primary)', fontWeight: 600 }}
               />
-              <Bar
-                dataKey="daThu"
-                name="Đã thu"
-                fill="#10b981"
-                maxBarSize={44}
-                radius={[6, 6, 0, 0]}
-                isAnimationActive={false}
-              />
-              <Bar
-                dataKey="conNo"
-                name="Còn nợ"
-                fill="#f59e0b"
-                maxBarSize={44}
-                radius={[6, 6, 0, 0]}
-                isAnimationActive={false}
-              />
+              {CHART_SERIES.map((s) => (
+                <Bar
+                  key={s.key}
+                  dataKey={s.key}
+                  name={s.name}
+                  fill={s.color}
+                  maxBarSize={36}
+                  radius={[6, 6, 0, 0]}
+                  isAnimationActive={false}
+                />
+              ))}
             </BarChart>
           </ResponsiveContainer>
+        </VStack>
+      </Card>
 
-          {/* CHÚ THÍCH BIỂU ĐỒ (LEGEND) CHUẨN XÁC THEO LOGIC THỨ TỰ */}
-          <HStack hAlign="center" vAlign="center" gap={4} wrap="wrap">
-            <Badge variant="blue" label="Tổng vốn dây" />
-            <Badge variant="green" label="Đã thu" />
-            <Badge variant="orange" label="Còn nợ" />
-          </HStack>
+      <Card>
+        <VStack gap={3}>
+          <Heading level={2}>Các dây hụi</Heading>
+          <Table<GroupSummary>
+            data={summaries}
+            columns={isCompact ? groupColumns.slice(0, 2) : groupColumns}
+            idKey="id"
+            density="compact"
+            dividers="rows"
+          />
         </VStack>
       </Card>
     </VStack>

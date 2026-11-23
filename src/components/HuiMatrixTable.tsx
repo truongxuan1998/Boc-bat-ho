@@ -8,18 +8,15 @@ import {
   Table,
   TableColumn,
   pixel,
-  proportional,
   useTableStickyColumns,
 } from '@astryxdesign/core/Table';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Grid } from '@astryxdesign/core/Grid';
-import {
-  Table as TableIcon,
-  TrendingUp,
-  TrendingDown,
-} from 'lucide-react';
+import { StatusDot } from '@astryxdesign/core/StatusDot';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { ProgressiveHuiMatrix, ProgressiveHuiMemberRow } from '@/types';
+import { formatCurrency } from '@/lib/huiCalculator';
 
 interface HuiMatrixTableProps {
   matrix: ProgressiveHuiMatrix;
@@ -27,177 +24,110 @@ interface HuiMatrixTableProps {
   subtitle?: string;
 }
 
-function formatMoneyOrStep(val: number): string {
-  return new Intl.NumberFormat('vi-VN').format(val) + ' ₫';
+export function ProfitBadge({ value }: { value: number }) {
+  if (value > 0) return <Badge label={`+${formatCurrency(value)}`} variant="green" />;
+  if (value < 0) return <Badge label={formatCurrency(value)} variant="red" />;
+  return <Badge label="Hòa vốn" variant="neutral" />;
 }
 
 export function HuiMatrixTable({
   matrix,
-  title = 'Bảng ma trận đóng hụi lũy tiến',
-  subtitle = 'Mô hình chuẩn theo dõi kỳ lụm, kỳ đóng bù sau lụm và kỳ chân sống',
+  title = 'Ma trận đóng hụi lũy tiến',
+  subtitle,
 }: HuiMatrixTableProps) {
-  // Plugin cố định cột đầu tiên "Thành viên" khi cuộn ngang
+  // Cố định cột "Thành viên" khi cuộn ngang
   const stickyPlugin = useTableStickyColumns<ProgressiveHuiMemberRow>({
     startKeys: ['memberName'],
   });
 
-  // Định nghĩa các cột Table động theo danh sách tháng
   const columns: TableColumn<ProgressiveHuiMemberRow>[] = [
     {
       key: 'memberName',
       header: 'Thành viên',
-      width: pixel(140),
+      width: pixel(124),
       renderCell: (row) => (
-        <HStack gap={2} vAlign="center" wrap="nowrap">
-          <Badge label={row.memberName} variant="yellow" />
-          <Text type="supporting" color="secondary">
-            (Kỳ {row.turnIndex})
+        <VStack gap={0}>
+          <Text weight="semibold" maxLines={1}>
+            {row.memberName}
           </Text>
-        </HStack>
+          <Text type="supporting" color="secondary">
+            Lụm kỳ {row.turnIndex}
+          </Text>
+        </VStack>
       ),
     },
   ];
 
-  // Thêm từng cột tháng
   matrix.months.forEach((monthName, idx) => {
     columns.push({
       key: `month_${idx}`,
-      header: monthName.toLowerCase().replace(/^t/, 'T'),
+      header: monthName,
       align: 'center',
-      width: pixel(120),
+      width: pixel(116),
       renderCell: (row) => {
         const cell = row.cells[idx];
         if (!cell) return <Text color="disabled">—</Text>;
 
         if (cell.type === 'WON') {
-          const received = cell.totalReceived || row.wonAmount;
           return (
-            <VStack gap={0} hAlign="center">
-              <Badge
-                label={matrix.basePot > 0 ? formatMoneyOrStep(received) : cell.label}
-                variant="green"
-              />
-              {matrix.basePot > 0 && (
-                <Text type="supporting" color="secondary">
-                  {cell.label}
-                </Text>
-              )}
+            <VStack gap={0.5} hAlign="center">
+              <Badge label={formatCurrency(cell.totalReceived || row.wonAmount)} variant="green" />
+              <Text type="supporting" color="secondary">
+                {cell.label}
+              </Text>
             </VStack>
           );
         }
 
         if (cell.type === 'DEAD') {
           return (
-            <VStack gap={0} hAlign="center">
-              <Badge
-                label={cell.label}
-                variant="neutral"
-              />
-              {matrix.baseAmount > 0 && (
-                <Text type="supporting" color="secondary" hasTabularNumbers>
-                  Đóng: {formatMoneyOrStep(cell.totalToPay || 0)}
-                </Text>
-              )}
+            <VStack gap={0.5} hAlign="center">
+              <Text weight="semibold" hasTabularNumbers>
+                {formatCurrency(cell.totalToPay || 0)}
+              </Text>
+              <Badge label={cell.label} variant="orange" />
             </VStack>
           );
         }
 
-        // ALIVE (Chân sống chưa lụm - ô đen)
+        // Chân sống: đóng gốc
         return (
-          <VStack gap={0} hAlign="center">
-            <Text type="supporting" color="disabled">
-              —
-            </Text>
-            {matrix.baseAmount > 0 && (
-              <Text type="supporting" color="secondary" hasTabularNumbers>
-                Đóng: {formatMoneyOrStep(matrix.baseAmount)}
-              </Text>
-            )}
-          </VStack>
+          <Text color="secondary" hasTabularNumbers>
+            {formatCurrency(matrix.baseAmount)}
+          </Text>
         );
       },
     });
   });
 
-  // Cột Số Tiền Lụm (Nhận Được)
-  if (matrix.basePot > 0) {
-    columns.push({
-      key: 'wonAmount',
-      header: 'Tiền lụm',
-      align: 'end',
-      width: pixel(130),
-      renderCell: (row) => (
-        <VStack gap={0} hAlign="end">
-          <Badge
-            label={formatMoneyOrStep(row.wonAmount)}
-            variant="green"
-          />
-          {row.wonBonus > 0 && (
-            <Text type="supporting" color="secondary" hasTabularNumbers>
-              +{formatMoneyOrStep(row.wonBonus)} lãi
-            </Text>
-          )}
-        </VStack>
-      ),
-    });
-
-    // Cột Tổng Tiền Đã Đóng
-    columns.push({
+  columns.push(
+    {
       key: 'totalPaid',
       header: 'Tổng đóng',
       align: 'end',
-      width: pixel(130),
+      width: pixel(124),
       renderCell: (row) => (
         <VStack gap={0} hAlign="end">
           <Text weight="semibold" hasTabularNumbers>
-            {formatMoneyOrStep(row.totalPaid)}
+            {formatCurrency(row.totalPaid)}
           </Text>
           {row.totalInterestPaid > 0 && (
             <Text type="supporting" color="secondary" hasTabularNumbers>
-              +{formatMoneyOrStep(row.totalInterestPaid)} bù
+              gồm {formatCurrency(row.totalInterestPaid)} bù
             </Text>
           )}
         </VStack>
       ),
-    });
-  }
-
-  // Cột tổng kết Lãi / Lỗ ròng
-  columns.push({
-    key: 'netProfit',
-    header: 'Lãi / Lỗ',
-    align: 'end',
-    width: pixel(130),
-    renderCell: (row) => {
-      if (row.netProfit > 0) {
-        return (
-          <HStack hAlign="end" width="100%">
-            <Badge
-              label={`+${formatMoneyOrStep(row.netProfit)}`}
-              variant="green"
-            />
-          </HStack>
-        );
-      }
-      if (row.netProfit < 0) {
-        return (
-          <HStack hAlign="end" width="100%">
-            <Badge
-              label={`${formatMoneyOrStep(row.netProfit)}`}
-              variant="red"
-            />
-          </HStack>
-        );
-      }
-      return (
-        <HStack hAlign="end" width="100%">
-          <Badge label="0 ₫ (Hòa)" variant="neutral" />
-        </HStack>
-      );
     },
-  });
+    {
+      key: 'netProfit',
+      header: 'Lãi/lỗ cả dây',
+      align: 'end',
+      width: pixel(124),
+      renderCell: (row) => <ProfitBadge value={row.netProfit} />,
+    }
+  );
 
-  // Thống kê nhanh người lời nhiều nhất và người chịu lãi nhiều nhất
   const firstWinner = matrix.members[0];
   const lastWinner = matrix.members[matrix.members.length - 1];
 
@@ -205,25 +135,30 @@ export function HuiMatrixTable({
     <VStack gap={4}>
       <Card>
         <VStack gap={4}>
-          <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-            <HStack gap={3} vAlign="center">
-              <Icon icon={TableIcon} size="md" />
-              <VStack gap={0}>
-                <Heading level={4}>{title}</Heading>
-                <Text type="supporting" color="secondary">
-                  {subtitle} • Bước nhảy lãi: <Text weight="semibold">{formatMoneyOrStep(matrix.interestStep)}</Text>
-                </Text>
-              </VStack>
-            </HStack>
+          <HStack hAlign="between" vAlign="start" wrap="wrap" gap={3}>
+            <VStack gap={1}>
+              <Heading level={2}>{title}</Heading>
+              <Text type="supporting" color="secondary">
+                {subtitle ? `${subtitle} · ` : ''}Lãi tăng {formatCurrency(matrix.interestStep)} mỗi kỳ
+              </Text>
+            </VStack>
 
-            <HStack gap={2} vAlign="center" wrap="wrap">
-              <Badge label="Ô xanh: Số tiền nhận được" variant="green" />
-              <Badge label="Ô xám: Sau lụm (-bù)" variant="neutral" />
-              <Badge label="Ô trống: Chân sống" variant="neutral" />
+            <HStack gap={4} vAlign="center" wrap="wrap">
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot variant="success" label="Tháng lụm" />
+                <Text type="supporting">Tháng lụm (tiền nhận)</Text>
+              </HStack>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot variant="warning" label="Đóng bù" />
+                <Text type="supporting">Sau lụm (đóng gốc + bù)</Text>
+              </HStack>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot variant="neutral" label="Chân sống" />
+                <Text type="supporting">Chân sống (đóng gốc)</Text>
+              </HStack>
             </HStack>
           </HStack>
 
-          {/* Bảng Ma Trận Dữ Liệu */}
           <Table<ProgressiveHuiMemberRow>
             data={matrix.members}
             columns={columns}
@@ -236,48 +171,45 @@ export function HuiMatrixTable({
         </VStack>
       </Card>
 
-      {/* 2 Thẻ đối xứng giải thích quy luật dòng tiền */}
-      <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4}>
-        <Card variant="muted">
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Lấy vốn sớm nhất (kỳ 1)
+      {firstWinner && lastWinner && matrix.members.length > 1 && (
+        <Grid columns={{ minWidth: 260, repeat: 'fit' }} gap={4}>
+          <Card variant="muted">
+            <VStack gap={2}>
+              <HStack hAlign="between" vAlign="center">
+                <Text type="supporting" color="secondary">
+                  Lụm đầu (kỳ 1): lấy vốn sớm
+                </Text>
+                <Icon icon={TrendingDown} size="md" color="red" />
+              </HStack>
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                <Heading level={3}>{firstWinner.memberName}</Heading>
+                <ProfitBadge value={firstWinner.netProfit} />
+              </HStack>
+              <Text type="supporting">
+                Nhận {formatCurrency(firstWinner.wonAmount)} ngay kỳ đầu, sau đó đóng bù tăng dần mỗi kỳ.
               </Text>
-              <Icon icon={TrendingDown} size="md" />
-            </HStack>
-            <HStack gap={2} vAlign="center">
-              <Heading level={3}>{firstWinner ? firstWinner.memberName : '—'}</Heading>
-              {firstWinner && (
-                <Badge label={`${formatMoneyOrStep(firstWinner.netProfit)} (Chịu lãi)`} variant="red" />
-              )}
-            </HStack>
-            <Text type="supporting">
-              Lấy tiền tươi kỳ đầu để kinh doanh / xoay sở vốn ({firstWinner ? formatMoneyOrStep(firstWinner.wonAmount) : ''}), đóng bù dần qua các kỳ sau
-            </Text>
-          </VStack>
-        </Card>
+            </VStack>
+          </Card>
 
-        <Card variant="muted">
-          <VStack gap={2}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="supporting" color="secondary">
-                Hốt chót lãi cao nhất (kỳ cuối)
+          <Card variant="muted">
+            <VStack gap={2}>
+              <HStack hAlign="between" vAlign="center">
+                <Text type="supporting" color="secondary">
+                  Lụm chót (kỳ {lastWinner.turnIndex}): lãi cao nhất
+                </Text>
+                <Icon icon={TrendingUp} size="md" color="green" />
+              </HStack>
+              <HStack gap={2} vAlign="center" wrap="wrap">
+                <Heading level={3}>{lastWinner.memberName}</Heading>
+                <ProfitBadge value={lastWinner.netProfit} />
+              </HStack>
+              <Text type="supporting">
+                Nhận {formatCurrency(lastWinner.wonAmount)} ở kỳ cuối, gồm toàn bộ tiền bù của các chân lụm trước.
               </Text>
-              <Icon icon={TrendingUp} size="md" />
-            </HStack>
-            <HStack gap={2} vAlign="center">
-              <Heading level={3}>{lastWinner ? lastWinner.memberName : '—'}</Heading>
-              {lastWinner && (
-                <Badge label={`+${formatMoneyOrStep(lastWinner.netProfit)} (Lời ròng)`} variant="green" />
-              )}
-            </HStack>
-            <Text type="supporting">
-              Gửi tiết kiệm trọn gói cả dây, nhận toàn bộ lãi lũy tiến từ các chân chết trước ({lastWinner ? formatMoneyOrStep(lastWinner.wonAmount) : ''})
-            </Text>
-          </VStack>
-        </Card>
-      </Grid>
+            </VStack>
+          </Card>
+        </Grid>
+      )}
     </VStack>
   );
 }

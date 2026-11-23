@@ -1,7 +1,11 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import '@astryxdesign/core/reset.css';
 import '@astryxdesign/core/astryx.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
 import { AstryxProvider } from '@/components/AstryxProvider';
+import { VisitTracker } from '@/components/VisitTracker';
 
 export const metadata: Metadata = {
   title: 'Bốc Bát Họ - Quản Lý Hụi & Bát Họ Thông Minh',
@@ -13,6 +17,16 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f3f5f9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f141c' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -20,8 +34,47 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var mode = localStorage.getItem('BOC_BAT_HO_THEME_MODE');
+                  var isDark = mode === 'dark' || (!mode && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                  var theme = isDark ? 'dark' : 'light';
+                  document.documentElement.setAttribute('data-theme', theme);
+                  document.documentElement.style.backgroundColor = isDark ? '#0f141c' : '#f3f5f9';
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html, body {
+                min-height: 100%;
+                margin: 0;
+                padding: 0;
+              }
+              html[data-theme="dark"], html[data-theme="dark"] body {
+                background-color: #0f141c;
+                color-scheme: dark;
+              }
+              html[data-theme="light"], html[data-theme="light"] body {
+                background-color: #f3f5f9;
+                color-scheme: light;
+              }
+            `,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning>
-        <AstryxProvider>{children}</AstryxProvider>
+        <AstryxProvider>
+          <VisitTracker />
+          {children}
+        </AstryxProvider>
       </body>
     </html>
   );

@@ -129,3 +129,35 @@ drop policy if exists "Allow public delete qr-codes" on storage.objects;
 create policy "Allow public delete qr-codes"
   on storage.objects for delete
   using (bucket_id = 'qr-codes');
+
+-- 7. BẢNG GHI NHẬN LƯỢT TRUY CẬP (ACCESS LOGS)
+create table if not exists public.access_logs (
+  id uuid primary key default gen_random_uuid(),
+  ip text not null,
+  location_display text,
+  city text,
+  region text,
+  country text,
+  device text,
+  os text,
+  browser text,
+  screen text,
+  path text,
+  user_agent text,
+  created_at timestamptz default now()
+);
+
+grant all on table public.access_logs to anon, authenticated;
+alter table public.access_logs enable row level security;
+
+drop policy if exists "Allow public insert access_logs" on public.access_logs;
+drop policy if exists "Allow public select access_logs" on public.access_logs;
+
+create policy "Allow public insert access_logs" on public.access_logs
+  for insert
+  with check (true);
+
+create policy "Allow public select access_logs" on public.access_logs
+  for select
+  using (true);
+

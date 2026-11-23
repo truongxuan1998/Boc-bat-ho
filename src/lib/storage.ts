@@ -1,19 +1,23 @@
-import { BatHoLoan, HuiGroup, SystemData } from '@/types';
+import { SplitEvent, SystemData } from '@/types';
 import {
   isSupabaseConfigured,
   fetchHuiGroupsFromCloud,
   fetchBatHoLoansFromCloud,
+  fetchSplitEventsFromCloud,
   syncHuiGroupToCloud,
   syncBatHoLoanToCloud,
+  syncSplitEventToCloud,
 } from './supabaseClient';
 
 const STORAGE_KEY = 'BOC_BAT_HO_DATA_V1';
 const CLOUD_SYNC_INITIALIZED_KEY = 'BOC_BAT_HO_CLOUD_INITIALIZED_V1';
+const SPLIT_CLOUD_INITIALIZED_KEY = 'BOC_BAT_HO_SPLIT_CLOUD_INITIALIZED_V1';
 
 export const emptySystemData: SystemData = {
   lastUpdated: new Date().toISOString(),
   huiGroups: [],
   batHoLoans: [],
+  splitEvents: [],
 };
 
 export function loadSystemData(): SystemData {
@@ -29,6 +33,7 @@ export function loadSystemData(): SystemData {
     return {
       huiGroups: parsed.huiGroups || [],
       batHoLoans: parsed.batHoLoans || [],
+      splitEvents: parsed.splitEvents || [],
       lastUpdated: parsed.lastUpdated || new Date().toISOString(),
     };
   } catch (e) {
@@ -41,6 +46,40 @@ export function loadSystemData(): SystemData {
  * Đọc dữ liệu đám mây Supabase (nếu có cấu hình), tự động đồng bộ 2 chiều
  */
 export async function loadSystemDataWithCloud(): Promise<SystemData> {
+  const data = await loadHuiDataWithCloud();
+  if (!isSupabaseConfigured()) return data;
+
+  const splitEvents = await resolveSplitEventsWithCloud(data.splitEvents);
+  if (splitEvents === data.splitEvents) return data;
+
+  const merged: SystemData = { ...data, splitEvents };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  }
+  return merged;
+}
+
+// Cùng quy tắc với dây hụi: Cloud có dữ liệu (hoặc đã từng đồng bộ) thì lấy Cloud,
+// lần đầu Cloud trống thì đẩy dữ liệu trên máy lên. Bảng chưa tạo thì giữ dữ liệu máy.
+async function resolveSplitEventsWithCloud(local: SplitEvent[]): Promise<SplitEvent[]> {
+  const cloud = await fetchSplitEventsFromCloud();
+  if (!cloud) return local;
+
+  const initialized = localStorage.getItem(SPLIT_CLOUD_INITIALIZED_KEY) === 'true';
+  if (cloud.length > 0 || initialized) {
+    localStorage.setItem(SPLIT_CLOUD_INITIALIZED_KEY, 'true');
+    return cloud;
+  }
+  if (local.length > 0) {
+    for (const event of local) {
+      await syncSplitEventToCloud(event);
+    }
+    localStorage.setItem(SPLIT_CLOUD_INITIALIZED_KEY, 'true');
+  }
+  return local;
+}
+
+async function loadHuiDataWithCloud(): Promise<SystemData> {
   const localData = loadSystemData();
   if (!isSupabaseConfigured()) {
     return localData;
@@ -60,6 +99,7 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
       const updatedData: SystemData = {
         huiGroups: cloudHui,
         batHoLoans: cloudBatHo || localData.batHoLoans,
+        splitEvents: localData.splitEvents,
         lastUpdated: new Date().toISOString(),
       };
       if (typeof window !== 'undefined') {
@@ -78,6 +118,7 @@ export async function loadSystemDataWithCloud(): Promise<SystemData> {
       const updatedData: SystemData = {
         huiGroups: [],
         batHoLoans: cloudBatHo || localData.batHoLoans,
+        splitEvents: localData.splitEvents,
         lastUpdated: new Date().toISOString(),
       };
       if (typeof window !== 'undefined') {
@@ -115,6 +156,7 @@ export function saveSystemData(data: SystemData): void {
     if (isSupabaseConfigured()) {
       data.huiGroups.forEach((h) => syncHuiGroupToCloud(h));
       data.batHoLoans.forEach((b) => syncBatHoLoanToCloud(b));
+      data.splitEvents.forEach((e) => syncSplitEventToCloud(e));
     }
   } catch (e) {
     console.error('Lỗi khi lưu dữ liệu', e);

@@ -128,9 +128,35 @@ export interface BatHoLoan extends Record<string, unknown> {
   [key: string]: unknown;
 }
 
-// 3. TỔNG THỂ HỆ THỐNG
+// 3. CHIA TIỀN NHÓM (ĐI ĂN, ĐI CHƠI)
+export type SplitMode = 'EQUAL' | 'CUSTOM';
+
+export interface SplitExpense extends Record<string, unknown> {
+  id: string;
+  title: string; // Vd: Lẩu tối thứ 7
+  amount: number; // Tổng tiền khoản chi
+  paidBy: string; // Tên người trả trước
+  participants: string[]; // Những người cùng chịu khoản này
+  splitMode: SplitMode; // Chia đều hoặc nhập số riêng từng người
+  customShares?: Record<string, number>; // Phần của từng người khi splitMode = CUSTOM
+  createdAt: string;
+}
+
+export interface SplitEvent extends Record<string, unknown> {
+  id: string;
+  name: string; // Vd: Đà Lạt 3 ngày
+  date: string; // YYYY-MM-DD
+  members: string[]; // Tên thành viên (duy nhất trong một chuyến)
+  expenses: SplitExpense[];
+  paidTransfers: string[]; // Khóa các lượt chuyển tiền đã xác nhận: "from|to|amount"
+  status: 'ACTIVE' | 'DELETED';
+  createdAt: string;
+}
+
+// 4. TỔNG THỂ HỆ THỐNG
 export interface SystemData {
   huiGroups: HuiGroup[];
   batHoLoans: BatHoLoan[];
+  splitEvents: SplitEvent[];
   lastUpdated: string;
 }

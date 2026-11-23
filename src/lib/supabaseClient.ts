@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { BatHoLoan, HuiGroup } from '@/types';
+import { BatHoLoan, HuiGroup, SplitEvent } from '@/types';
 
 const SUPABASE_CONFIG_KEY = 'BOC_BAT_HO_SUPABASE_CONFIG';
 
@@ -287,9 +287,111 @@ export function subscribeToRealtimeChanges(onUpdate: () => void): () => void {
     )
     .subscribe();
 
+  // Kênh riêng cho chia tiền: bảng chưa tồn tại cũng không làm hỏng kênh hụi ở trên
+  const splitChannel = client
+    .channel('boc_bat_ho_split_realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'split_events' },
+      () => onUpdate()
+    )
+    .subscribe();
+
   return () => {
     client.removeChannel(channel);
+    client.removeChannel(splitChannel);
   };
+}
+
+// ==========================================
+// CHIA TIỀN NHÓM (bảng split_events)
+// Bảng chưa được tạo thì chỉ báo một lần rồi bỏ qua, dữ liệu vẫn lưu trên máy
+// ==========================================
+
+let splitTableUnavailable = false;
+
+function markSplitTableUnavailable(message: string) {
+  if (!splitTableUnavailable) {
+    console.warn(
+      'Chưa đồng bộ được Chia tiền lên Supabase (hãy chạy phần 8 trong supabase-schema.sql):',
+      message
+    );
+  }
+  splitTableUnavailable = true;
+}
+
+export async function fetchSplitEventsFromCloud(): Promise<SplitEvent[] | null> {
+  const client = getSupabaseClient();
+  if (!client || splitTableUnavailable) return null;
+  try {
+    const { data, error } = await client
+      .from('split_events')
+      .select('*')
+      .neq('status', 'DELETED')
+      .order('created_at', { ascending: false });
+    if (error) {
+      markSplitTableUnavailable(error.message);
+      return null;
+    }
+    return (data || []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      date: row.event_date,
+      members: row.members || [],
+      expenses: row.expenses || [],
+      paidTransfers: row.paid_transfers || [],
+      status: row.status,
+      createdAt: row.created_at,
+    }));
+  } catch (e) {
+    console.warn('Lỗi kết nối Supabase:', e);
+    return null;
+  }
+}
+
+export async function syncSplitEventToCloud(event: SplitEvent): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client || splitTableUnavailable) return false;
+  try {
+    const { error } = await client.from('split_events').upsert({
+      id: event.id,
+      name: event.name,
+      event_date: event.date,
+      members: event.members,
+      expenses: event.expenses,
+      paid_transfers: event.paidTransfers,
+      status: event.status,
+      created_at: event.createdAt,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      markSplitTableUnavailable(error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Lỗi kết nối Supabase:', e);
+    return false;
+  }
+}
+
+export async function softDeleteSplitEventFromCloud(eventId: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client || splitTableUnavailable) return false;
+  try {
+    const { error } = await client
+      .from('split_events')
+      .update({ status: 'DELETED', updated_at: new Date().toISOString() })
+      .eq('id', eventId);
+    if (error) {
+      markSplitTableUnavailable(error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Lỗi kết nối Supabase:', e);
+    return false;
+  }
 }
 
 /**

@@ -161,3 +161,35 @@ create policy "Allow public select access_logs" on public.access_logs
   for select
   using (true);
 
+
+-- 8. BẢNG CHIA TIỀN NHÓM (ĐI ĂN, ĐI CHƠI)
+create table if not exists public.split_events (
+  id text primary key,
+  name text not null,
+  event_date text not null,
+  members jsonb not null default '[]'::jsonb,
+  expenses jsonb not null default '[]'::jsonb,
+  paid_transfers jsonb not null default '[]'::jsonb,
+  status text not null default 'ACTIVE',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+grant all on table public.split_events to anon, authenticated;
+alter table public.split_events enable row level security;
+
+drop policy if exists "Allow public all split_events" on public.split_events;
+create policy "Allow public all split_events" on public.split_events
+  for all
+  using (true)
+  with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'split_events'
+  ) then
+    alter publication supabase_realtime add table public.split_events;
+  end if;
+end $$;

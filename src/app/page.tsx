@@ -11,8 +11,8 @@ import { Icon } from '@astryxdesign/core/Icon';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
-import { BarChart3, Users, Calculator } from 'lucide-react';
-import { SystemData, HuiGroup } from '@/types';
+import { BarChart3, Users, Calculator, Receipt } from 'lucide-react';
+import { SystemData, HuiGroup, SplitEvent } from '@/types';
 import {
   loadSystemData,
   loadSystemDataWithCloud,
@@ -24,10 +24,11 @@ import { HeaderNav } from '@/components/HeaderNav';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { HuiTab } from '@/components/HuiTab';
 import { CalculatorTab } from '@/components/CalculatorTab';
+import { SplitTab } from '@/components/SplitTab';
 import { ZaloExportModal } from '@/components/ZaloExportModal';
 import { AccessLogsModal } from '@/components/AccessLogsModal';
 
-const TABS = ['overview', 'hui', 'calc'] as const;
+const TABS = ['overview', 'hui', 'calc', 'split'] as const;
 
 export default function Home() {
   const [data, setData] = useState<SystemData>(emptySystemData);
@@ -76,6 +77,12 @@ export default function Home() {
     saveSystemData(updated);
   };
 
+  const handleUpdateSplitEvents = (events: SplitEvent[]) => {
+    const updated = { ...data, splitEvents: events };
+    setData(updated);
+    saveSystemData(updated);
+  };
+
   // Xuất file JSON sao lưu
   const handleExportJson = () => {
     const jsonStr = JSON.stringify(data, null, 2);
@@ -106,23 +113,28 @@ export default function Home() {
                 label="Chế độ làm việc"
                 value={activeTab}
                 onChange={handleTabChange}
-                size={isCompact ? 'md' : 'lg'}
+                size={isCompact ? 'sm' : 'lg'}
                 layout={isCompact ? 'fill' : 'hug'}
               >
                 <SegmentedControlItem
                   value="overview"
                   label="Tổng quan"
-                  icon={<Icon icon={BarChart3} size="sm" />}
+                  icon={isCompact ? undefined : <Icon icon={BarChart3} size="sm" />}
                 />
                 <SegmentedControlItem
                   value="hui"
                   label="Dây hụi"
-                  icon={<Icon icon={Users} size="sm" />}
+                  icon={isCompact ? undefined : <Icon icon={Users} size="sm" />}
                 />
                 <SegmentedControlItem
                   value="calc"
                   label="Dự toán"
-                  icon={<Icon icon={Calculator} size="sm" />}
+                  icon={isCompact ? undefined : <Icon icon={Calculator} size="sm" />}
+                />
+                <SegmentedControlItem
+                  value="split"
+                  label="Chia tiền"
+                  icon={isCompact ? undefined : <Icon icon={Receipt} size="sm" />}
                 />
               </SegmentedControl>
 
@@ -163,6 +175,12 @@ export default function Home() {
                   />
                 )}
                 {activeTab === 'calc' && <CalculatorTab />}
+                {activeTab === 'split' && (
+                  <SplitTab
+                    events={data.splitEvents}
+                    onUpdateEvents={handleUpdateSplitEvents}
+                  />
+                )}
               </>
             )}
 

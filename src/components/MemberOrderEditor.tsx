@@ -18,6 +18,14 @@ interface MemberOrderEditorProps {
   members: string[];
   onChange: (members: string[]) => void;
   minMembers?: number;
+  title?: string;
+  description?: string;
+  // false: danh sách không có thứ tự (không số thứ tự, không kéo thả, không mũi tên)
+  isOrdered?: boolean;
+  // false: chặn tên trùng (không phân biệt hoa thường)
+  allowDuplicates?: boolean;
+  // Trả về lý do nếu không được xóa người này
+  getRemoveBlockReason?: (name: string) => string | null;
 }
 
 function moveItem<T>(list: T[], from: number, to: number): T[] {
@@ -28,7 +36,16 @@ function moveItem<T>(list: T[], from: number, to: number): T[] {
 }
 
 // Danh sách thành viên theo thứ tự lụm: thêm bằng Enter/dấu phẩy, kéo thả hoặc bấm mũi tên để đổi thứ tự
-export function MemberOrderEditor({ members, onChange, minMembers = 2 }: MemberOrderEditorProps) {
+export function MemberOrderEditor({
+  members,
+  onChange,
+  minMembers = 2,
+  title = 'Thứ tự lụm',
+  description = 'Người đầu lụm kỳ 1, người cuối lụm kỳ chót. Kéo thả hoặc bấm ‹ › để đổi chỗ.',
+  isOrdered = true,
+  allowDuplicates = true,
+  getRemoveBlockReason,
+}: MemberOrderEditorProps) {
   const toast = useToast();
   const [input, setInput] = useState('');
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -39,13 +56,37 @@ export function MemberOrderEditor({ members, onChange, minMembers = 2 }: MemberO
       .map((s) => s.trim())
       .filter(Boolean);
     if (parts.length === 0) return;
+    if (!allowDuplicates) {
+      const seen = new Set(members.map((m) => m.toLocaleLowerCase('vi')));
+      const fresh: string[] = [];
+      const dupes: string[] = [];
+      for (const p of parts) {
+        const key = p.toLocaleLowerCase('vi');
+        if (seen.has(key)) dupes.push(p);
+        else {
+          seen.add(key);
+          fresh.push(p);
+        }
+      }
+      if (dupes.length > 0) {
+        toast({ body: `Đã có tên: ${dupes.join(', ')}`, type: 'error' });
+      }
+      if (fresh.length > 0) onChange([...members, ...fresh]);
+      setInput('');
+      return;
+    }
     onChange([...members, ...parts]);
     setInput('');
   };
 
   const removeMember = (idx: number) => {
     if (members.length <= minMembers) {
-      toast({ body: `Dây hụi cần tối thiểu ${minMembers} thành viên.`, type: 'error' });
+      toast({ body: `Cần tối thiểu ${minMembers} thành viên.`, type: 'error' });
+      return;
+    }
+    const reason = getRemoveBlockReason?.(members[idx]);
+    if (reason) {
+      toast({ body: reason, type: 'error' });
       return;
     }
     onChange(members.filter((_, i) => i !== idx));
@@ -67,9 +108,9 @@ export function MemberOrderEditor({ members, onChange, minMembers = 2 }: MemberO
     <VStack gap={2}>
       <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
         <VStack gap={0.5}>
-          <Text weight="semibold">Thứ tự lụm</Text>
+          <Text weight="semibold">{title}</Text>
           <Text type="supporting" color="secondary">
-            Người đầu lụm kỳ 1, người cuối lụm kỳ chót. Kéo thả hoặc bấm ‹ › để đổi chỗ.
+            {description}
           </Text>
         </VStack>
         <Badge label={`${members.length} người`} variant="blue" />
@@ -86,6 +127,16 @@ export function MemberOrderEditor({ members, onChange, minMembers = 2 }: MemberO
               {members.map((name, idx) => {
                 const isFirst = idx === 0;
                 const isLast = idx === members.length - 1;
+                if (!isOrdered) {
+                  return (
+                    <Token
+                      key={`${name}-${idx}`}
+                      label={name}
+                      size="md"
+                      onRemove={() => removeMember(idx)}
+                    />
+                  );
+                }
                 return (
                   <HStack
                     key={`${name}-${idx}`}

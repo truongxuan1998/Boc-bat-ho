@@ -4,11 +4,6 @@
   "mode": "both",
   "settings": [
     {
-      "thing": "accent",
-      "value": "#4f46e5",
-      "source": "dial"
-    },
-    {
       "thing": "neutral",
       "value": "#64748b",
       "source": "dial"
@@ -16,11 +11,6 @@
     {
       "thing": "corners",
       "value": "large",
-      "source": "dial"
-    },
-    {
-      "thing": "font",
-      "value": "inter",
       "source": "dial"
     },
     {
@@ -51,8 +41,81 @@
       "thing": "--size-element-lg",
       "value": "44px",
       "source": "token"
+    },
+    {
+      "thing": "accent",
+      "value": "#1F2DE6",
+      "source": "dial"
+    },
+    {
+      "thing": "font",
+      "value": "\"Be Vietnam Pro\"",
+      "source": "dial"
+    },
+    {
+      "thing": "background-color",
+      "value": "#1F2DE6",
+      "source": "property",
+      "on": "card",
+      "when": "variant:blue"
+    },
+    {
+      "thing": "--color-text-primary",
+      "value": "#FFFFFF",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds color on heading inside card (when color=primary), color on text inside card (when color=primary), color on button inside card (when variant=ghost), color on button inside card (when variant=secondary)"
+    },
+    {
+      "thing": "--color-text-secondary",
+      "value": "#DCE2FF",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds color on heading inside card (when color=secondary), color on heading inside card (when color=placeholder), color on text inside card (when color=secondary), color on text inside card (when color=placeholder)"
+    },
+    {
+      "thing": "--color-accent",
+      "value": "#FFFFFF",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds box-shadow on card (when variant=default selected=true), box-shadow on card (when variant=transparent selected=true), box-shadow on card (when variant=muted selected=true), border-color on card (when variant=default selected=true)"
+    },
+    {
+      "thing": "--color-on-accent",
+      "value": "#1F2DE6",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds color on button inside card (when variant=primary), color on checkbox-indicator inside card, color on checkbox-indicator-check inside card, background-color on checkbox-indicator-dash inside card"
+    },
+    {
+      "thing": "--color-border",
+      "value": "transparent",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds border-color on card (when variant=default), border-inline-start-color on button inside card (when variant=secondary), border-color on checkbox-indicator inside card, border-bottom-color on table-header-cell inside card"
+    },
+    {
+      "thing": "--color-icon-secondary",
+      "value": "#DCE2FF",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds background-color on status-dot inside card (when variant=neutral)"
+    },
+    {
+      "thing": "--color-background-muted",
+      "value": "#4B57EB",
+      "source": "token",
+      "on": "card",
+      "when": "variant:blue",
+      "note": "feeds background-color on card (when variant=muted), background-color on card (when variant=muted selected=true), background-color on progress-bar-track inside card"
     }
   ],
   "lifted": [],
-  "palette": "38765d6d5f4813dd07e24fc31ed66f5b8b75a8795884f81f8fe7a32b284c3e06"
+  "palette": "be2467c3c2eb937b0cd8d38f9643bd125db5aed9d6c4325843bdf45551925a70"
 }

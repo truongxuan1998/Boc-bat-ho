@@ -92,8 +92,8 @@ export const huiTheme = {
     "--_astryx-pre-tempo-duration-slow": "700ms",
     "--_astryx-pre-tempo-duration-slow-max": "935ms",
     "--_astryx-motion-tempo": "1",
-    "--font-family-body": "Inter, system-ui, sans-serif",
-    "--font-family-heading": "Inter, system-ui, sans-serif",
+    "--font-family-body": "\"Be Vietnam Pro\", system-ui, sans-serif",
+    "--font-family-heading": "\"Be Vietnam Pro\", system-ui, sans-serif",
     "--font-family-code": "ui-monospace, \"SF Mono\", Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace",
     "--color-syntax-keyword": "light-dark(#6b187c, #efa8ff)",
     "--color-syntax-string": "light-dark(#0b5615, #a4d6a3)",
@@ -119,8 +119,8 @@ export const huiTheme = {
     "--color-background-card": "light-dark(#ffffff, #151c26)",
     "--color-background-popover": "light-dark(#ffffff, #151c26)",
     "--color-background-muted": "light-dark(#e8f2ff, #151c26)",
-    "--color-accent": "light-dark(#4f46e5, #96a2ff)",
-    "--color-accent-muted": "light-dark(#c9d1ff, #363697)",
+    "--color-accent": "light-dark(#1f2de6, #86a8ff)",
+    "--color-accent-muted": "light-dark(#c2d4ff, #213a9d)",
     "--color-neutral": "light-dark(#0000000F, #ffffff1A)",
     "--color-overlay": "light-dark(#00000080, #000000CC)",
     "--color-overlay-hover": "light-dark(#0000000d, #ffffff0d)",
@@ -128,7 +128,7 @@ export const huiTheme = {
     "--color-text-primary": "light-dark(#000000, #ffffff)",
     "--color-text-secondary": "light-dark(#3a485b, #8f9eb3)",
     "--color-text-disabled": "light-dark(#7f8fa7, #455265)",
-    "--color-text-accent": "light-dark(#4538d3, #b8c2ff)",
+    "--color-text-accent": "light-dark(#1f2de6, #aec5ff)",
     "--color-on-dark": "#ffffff",
     "--color-on-light": "#111111",
     "--color-on-accent": "light-dark(#ffffff, #0c1119)",
@@ -146,7 +146,7 @@ export const huiTheme = {
     "--color-on-success-muted": "light-dark(#00490b, #90ca90)",
     "--color-on-warning-muted": "light-dark(#4b3900, #eec448)",
     "--color-on-error-muted": "light-dark(#76000c, #ffaea7)",
-    "--color-icon-accent": "light-dark(#4538d3, #b8c2ff)",
+    "--color-icon-accent": "light-dark(#1f2de6, #aec5ff)",
     "--color-icon-primary": "light-dark(#000000, #ffffff)",
     "--color-icon-secondary": "light-dark(#58687e, #8f9eb3)",
     "--color-icon-disabled": "light-dark(#7f8fa7, #455265)",
@@ -215,7 +215,7 @@ export const huiTheme = {
     "--shadow-inset-success": "inset 0px 0px 0px 2px #2f7d334D",
     "--shadow-inset-warning": "inset 0px 0px 0px 2px #f8d36a4D",
     "--shadow-inset-error": "inset 0px 0px 0px 2px #de47454D",
-    "--focus-outline-color": "light-dark(#4f46e5, #96a2ff)",
+    "--focus-outline-color": "light-dark(#1f2de6, #86a8ff)",
     "--size-element-lg": "44px"
   },
   localTokens: {
@@ -431,6 +431,16 @@ export const huiTheme = {
     "card": {
       "base": {
         "padding": "var(--spacing-3)"
+      },
+      "variant:blue": {
+        "backgroundColor": "#1F2DE6",
+        "--color-text-primary": "#FFFFFF",
+        "--color-text-secondary": "#DCE2FF",
+        "--color-accent": "#FFFFFF",
+        "--color-on-accent": "#1F2DE6",
+        "--color-border": "transparent",
+        "--color-icon-secondary": "#DCE2FF",
+        "--color-background-muted": "#4B57EB"
       }
     },
     "section": {
@@ -510,11 +520,11 @@ export const huiTheme = {
         "ratio": 1.2
       },
       "body": {
-        "family": "Inter",
+        "family": "Be Vietnam Pro",
         "fallbacks": "system-ui, sans-serif"
       },
       "heading": {
-        "family": "Inter",
+        "family": "Be Vietnam Pro",
         "fallbacks": "system-ui, sans-serif",
         "weights": {
           "3": "bold",

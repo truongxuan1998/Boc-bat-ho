@@ -625,49 +625,47 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
   return (
     <VStack gap={isCompact ? 4 : 6}>
       {/* Chọn quỹ và thao tác */}
-      <Card>
-        <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
-          <StackItem size={isCompact ? 'fill' : 'static'}>
-            <Selector
-              label="Quỹ" size={ctl}
-              value={current.id}
-              options={fundOptions}
-              onChange={(id) => {
-                setSelectedId(id);
-                setViewRoundIdx(null);
-              }}
-              width={isCompact ? '100%' : 280}
-            />
-          </StackItem>
-          <HStack gap={2} vAlign="center" wrap="nowrap">
-            <Button label="Mở đợt thu" size={ctl} variant="primary" icon={<Icon icon={HandCoins} />} onClick={openCreateRound} />
-            <Button
-              label="Ghi khoản chi" size={ctl}
-              variant="secondary"
-              isIconOnly={isCompact}
-              icon={<Icon icon={Wallet} />}
-              onClick={openAddExpense}
-            />
-            <MoreMenu
-              label="Thao tác khác với quỹ" size={ctl}
-              variant="secondary"
-              alignment="end"
-              presentation="adaptive"
-              items={[
-                { label: 'Quỹ mới', icon: <Icon icon={Plus} />, onClick: openCreateFund },
-                { label: 'Sửa tên, thành viên, thủ quỹ', icon: <Icon icon={UsersRound} />, onClick: openEditFund },
-                { type: 'divider' },
-                {
-                  label: 'Xóa quỹ',
-                  icon: <Icon icon={Trash2} />,
-                  variant: 'destructive',
-                  onClick: () => setIsDeleteFundOpen(true),
-                },
-              ]}
-            />
-          </HStack>
+      <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
+        <StackItem size={isCompact ? 'fill' : 'static'}>
+          <Selector
+            label="Quỹ" size={ctl}
+            value={current.id}
+            options={fundOptions}
+            onChange={(id) => {
+              setSelectedId(id);
+              setViewRoundIdx(null);
+            }}
+            width={isCompact ? '100%' : 280}
+          />
+        </StackItem>
+        <HStack gap={2} vAlign="center" wrap="nowrap">
+          <Button label="Mở đợt thu" size={ctl} variant="primary" icon={<Icon icon={HandCoins} />} onClick={openCreateRound} />
+          <Button
+            label="Ghi khoản chi" size={ctl}
+            variant="secondary"
+            isIconOnly={isCompact}
+            icon={<Icon icon={Wallet} />}
+            onClick={openAddExpense}
+          />
+          <MoreMenu
+            label="Thao tác khác với quỹ" size={ctl}
+            variant="secondary"
+            alignment="end"
+            presentation="adaptive"
+            items={[
+              { label: 'Quỹ mới', icon: <Icon icon={Plus} />, onClick: openCreateFund },
+              { label: 'Sửa tên, thành viên, thủ quỹ', icon: <Icon icon={UsersRound} />, onClick: openEditFund },
+              { type: 'divider' },
+              {
+                label: 'Xóa quỹ',
+                icon: <Icon icon={Trash2} />,
+                variant: 'destructive',
+                onClick: () => setIsDeleteFundOpen(true),
+              },
+            ]}
+          />
         </HStack>
-      </Card>
+      </HStack>
 
       {summary.balance < 0 && (
         <Banner
@@ -679,8 +677,8 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
 
       {/* Chỉ số */}
       <Grid columns={{ minWidth: isCompact ? 150 : 200, repeat: 'fit' }} gap={isCompact ? 3 : 4}>
-        {kpis.map((k) => (
-          <Card key={k.label}>
+        {kpis.map((k, idx) => (
+          <Card key={k.label} variant={idx === 0 ? 'blue' : 'default'}>
             <VStack gap={2}>
               <Text type="supporting" color="secondary" maxLines={1}>
                 {k.label}

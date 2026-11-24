@@ -8,7 +8,7 @@ export const huiPaletteRefs = {
     dark: {5: '#0c1119', 10: '#151c26', 15: '#1e2632', 35: '#455265', 65: '#8f9eb3', 80: '#bbc8d9', 100: '#ffffff'},
   },
   accent: {
-    light: {40: '#4538d3', 45: '#4f46e5', 85: '#c9d1ff'},
-    dark: {30: '#363697', 70: '#96a2ff', 80: '#b8c2ff'},
+    light: {40: '#1f2de6', 85: '#c2d4ff'},
+    dark: {30: '#213a9d', 70: '#86a8ff', 80: '#aec5ff'},
   },
 };

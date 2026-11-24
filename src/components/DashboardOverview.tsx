@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { VStack, HStack } from '@astryxdesign/core/Layout';
 import { Heading, Text } from '@astryxdesign/core/Text';
 import { Card } from '@astryxdesign/core/Card';
-import { Grid } from '@astryxdesign/core/Grid';
+import { Grid, GridSpan } from '@astryxdesign/core/Grid';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Icon } from '@astryxdesign/core/Icon';
@@ -257,14 +257,15 @@ export function DashboardOverview({ data, onGoToHui }: DashboardOverviewProps) {
   return (
     <VStack gap={isCompact ? 4 : 6}>
       <Grid columns={{ minWidth: isCompact ? 150 : 220, repeat: 'fit' }} gap={isCompact ? 3 : 4}>
-        {kpis.map((k) => (
-          <Card key={k.label}>
+        {kpis.map((k, idx) => (
+          <GridSpan key={k.label} columns={isCompact && idx === 0 ? 'full' : 1}>
+          <Card variant={idx === 0 ? 'blue' : 'default'}>
             <VStack gap={3}>
               <HStack hAlign="between" vAlign="center" gap={2} wrap="nowrap">
                 <Text type="supporting" color="secondary" maxLines={1}>
                   {k.label}
                 </Text>
-                <Icon icon={k.icon} size="md" color={k.iconColor} />
+                <Icon icon={k.icon} size="md" color={idx === 0 ? 'secondary' : k.iconColor} />
               </HStack>
               <HStack vAlign="end" gap={2} wrap="nowrap">
                 <Text size={valueSize} weight="bold" hasTabularNumbers maxLines={1}>
@@ -279,6 +280,7 @@ export function DashboardOverview({ data, onGoToHui }: DashboardOverviewProps) {
               {k.footer}
             </VStack>
           </Card>
+          </GridSpan>
         ))}
       </Grid>
 

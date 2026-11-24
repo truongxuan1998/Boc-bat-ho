@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, LayoutContent, VStack, HStack } from '@astryxdesign/core/Layout';
-import { TabList, Tab } from '@astryxdesign/core/TabList';
-import { Text } from '@astryxdesign/core/Text';
-import { Icon } from '@astryxdesign/core/Icon';
+import { Layout, LayoutContent, LayoutFooter, VStack, HStack } from '@astryxdesign/core/Layout';
+import { AppShell } from '@astryxdesign/core/AppShell';
+import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden';
+import { Heading, Text } from '@astryxdesign/core/Text';
 import { Grid } from '@astryxdesign/core/Grid';
 import { Skeleton } from '@astryxdesign/core/Skeleton';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
@@ -17,7 +17,7 @@ import {
   emptySystemData,
 } from '@/lib/storage';
 import { subscribeToRealtimeChanges } from '@/lib/supabaseClient';
-import { HeaderNav } from '@/components/HeaderNav';
+import { DesktopSideNav, MobileTopNav, MobileTabBar } from '@/components/HeaderNav';
 import { DashboardOverview } from '@/components/DashboardOverview';
 import { HuiTab } from '@/components/HuiTab';
 import { CalculatorTab } from '@/components/CalculatorTab';
@@ -39,6 +39,8 @@ export default function Home() {
   const [isZaloModalOpen, setIsZaloModalOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const isCompact = useMediaQuery('(max-width: 640px)');
+  // Dưới 768px dùng điều hướng kiểu điện thoại (thanh trên + tab đáy)
+  const isNarrow = useMediaQuery('(max-width: 767px)');
 
   const refreshCloudData = useCallback(async () => {
     const cloudData = await loadSystemDataWithCloud();
@@ -103,35 +105,42 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  const navProps = {
+    tabs: TABS,
+    activeTab,
+    onTabChange: handleTabChange,
+    onOpenZaloModal: () => setIsZaloModalOpen(true),
+    onExportJson: handleExportJson,
+  };
+  const activeLabel = TABS.find((t) => t.value === activeTab)?.label ?? '';
+
+  // Desktop: thanh bên trái. Mobile (< 768px): thanh trên cùng + thanh tab ghim ở đáy.
+  // Mọi chức năng đều có ở cả hai: điều hướng, Gửi Zalo, sáng/tối, sao lưu.
   return (
-    <Layout
-      height="auto"
-      contentWidth={1152}
-      content={
-        <LayoutContent padding={isCompact ? 3 : 5} isScrollable={false}>
+    <AppShell
+      height="fill"
+      variant="elevated"
+      mobileNav={false}
+      sideNav={isNarrow ? undefined : <DesktopSideNav {...navProps} />}
+      topNav={isNarrow ? <MobileTopNav {...navProps} /> : undefined}
+    >
+      <Layout
+        height="fill"
+        contentWidth={1152}
+        content={
+        <LayoutContent padding={isCompact ? 3 : 6}>
           <VStack gap={isCompact ? 4 : 6} width="100%">
-            <HeaderNav
-              onOpenZaloModal={() => setIsZaloModalOpen(true)}
-              onExportJson={handleExportJson}
-            />
-
-            <HStack hAlign="between" vAlign="center" wrap="wrap" gap={3}>
-              <TabList
-                value={activeTab}
-                onChange={handleTabChange}
-                size="lg"
-                aria-label="Chế độ làm việc"
-              >
-                {TABS.map((t) => (
-                  <Tab
-                    key={t.value}
-                    value={t.value}
-                    label={t.label}
-                    icon={<Icon icon={t.icon} size="sm" />}
-                  />
-                ))}
-              </TabList>
-
+            <HStack hAlign="between" vAlign="end" wrap="wrap" gap={2}>
+              {/* Điện thoại: tên tab đã hiện ở thanh tab đáy nên chỉ giữ cho trình đọc màn hình */}
+              {isNarrow ? (
+                <VisuallyHidden>
+                  <Heading level={1}>{activeLabel}</Heading>
+                </VisuallyHidden>
+              ) : (
+                <Heading level={2} accessibilityLevel={1}>
+                  {activeLabel}
+                </Heading>
+              )}
               {isClient && !isCompact && (
                 <Text type="supporting" color="secondary">
                   Cập nhật lần cuối {new Date(data.lastUpdated).toLocaleString('vi-VN', {
@@ -191,7 +200,15 @@ export default function Home() {
             />
           </VStack>
         </LayoutContent>
-      }
-    />
+        }
+        footer={
+          isNarrow ? (
+            <LayoutFooter padding={1}>
+              <MobileTabBar {...navProps} />
+            </LayoutFooter>
+          ) : undefined
+        }
+      />
+    </AppShell>
   );
 }

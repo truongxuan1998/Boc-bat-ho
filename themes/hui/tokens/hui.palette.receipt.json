@@ -3,7 +3,7 @@
   "recipe": "astryx-oklch-v1",
   "generatorVersion": "palette-generator-v1",
   "candidateFormatVersion": "palette-typescript-v1",
-  "candidateSha256": "d19764cceeaf6e4c62febc298d83e6e441b9377262e2f6f6121f6d400af62fa2",
+  "candidateSha256": "0e255230297bfa0d6737fc542157d9cfea8fedcfb7c45221182aad8cabc2b92b",
   "request": {
     "recipe": "astryx-oklch-v1",
     "vibrancy": 50,
@@ -36,13 +36,13 @@
       {
         "id": "accent",
         "name": "Accent",
-        "seed": "#4f46e5",
+        "seed": "#1f2de6",
         "kind": "chromatic",
         "anchors": [
           {
             "mode": "light",
-            "stop": 45,
-            "color": "#4f46e5",
+            "stop": 40,
+            "color": "#1f2de6",
             "policy": "exact"
           }
         ]
@@ -74,9 +74,9 @@
       "accent": {
         "light": {
           "monotonic": true,
-          "minimumAdjacentDeltaE": 3.9047370480112824,
-          "maximumAdjacentDeltaE": 20.32210014126293,
-          "maximumHueDrift": 0.5006607891507429,
+          "minimumAdjacentDeltaE": 4.007038206370804,
+          "maximumAdjacentDeltaE": 20.572781702128175,
+          "maximumHueDrift": 0.5382770200243385,
           "hueIdentityRisk": null,
           "gamutMappedStops": [
             60,
@@ -92,19 +92,19 @@
           "anchors": [
             {
               "mode": "light",
-              "stop": 45,
-              "color": "#4f46e5",
+              "stop": 40,
+              "color": "#1f2de6",
               "policy": "exact",
-              "generatedColor": "#4f46e5",
+              "generatedColor": "#1f2de6",
               "deltaE": 0
             }
           ]
         },
         "dark": {
           "monotonic": true,
-          "minimumAdjacentDeltaE": 4.256451954407826,
-          "maximumAdjacentDeltaE": 19.675175492066124,
-          "maximumHueDrift": 0.3655800538319909,
+          "minimumAdjacentDeltaE": 4.1520924680969795,
+          "maximumAdjacentDeltaE": 19.81368347513579,
+          "maximumHueDrift": 0.6912794181446316,
           "hueIdentityRisk": null,
           "gamutMappedStops": [
             65,

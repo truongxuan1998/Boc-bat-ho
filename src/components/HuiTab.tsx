@@ -23,8 +23,9 @@ import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { useToast } from '@astryxdesign/core/Toast';
 import { ProgressBar } from '@astryxdesign/core/ProgressBar';
-import { Table, TableColumn, pixel, proportional, useTableStickyColumns } from '@astryxdesign/core/Table';
+import { Table, TableColumn, pixel, useTableStickyColumns } from '@astryxdesign/core/Table';
 import { Avatar } from '@astryxdesign/core/Avatar';
+import { List, ListItem } from '@astryxdesign/core/List';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { Icon } from '@astryxdesign/core/Icon';
 import { useMediaQuery } from '@astryxdesign/core/hooks';
@@ -41,7 +42,7 @@ import {
   QrCodeIcon,
   ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
-import { HuiGroup, HuiPeriodPayment, HuiSlot, HuiPeriod } from '@/types';
+import { HuiGroup, HuiSlot, HuiPeriod } from '@/types';
 import {
   calculateNewHuiPeriod,
   calculateSlotStatistics,
@@ -554,61 +555,6 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     }
   };
 
-  // Bảng điểm danh
-  const paymentColumns: TableColumn<HuiPeriodPayment>[] = [
-    {
-      key: 'memberName',
-      header: 'Thành viên',
-      width: proportional(1.4, { minWidth: 104 }),
-      renderCell: (p) => (
-        <VStack gap={0}>
-          <Text weight="semibold" maxLines={1}>{p.memberName}</Text>
-          {isCompact && (
-            <Text weight="semibold" hasTabularNumbers>{formatCurrency(p.amountToPay)}</Text>
-          )}
-          <Text type="supporting" color="secondary">Chân #{p.slotNumber}</Text>
-        </VStack>
-      ),
-    },
-    ...(isCompact ? [] : [{
-      key: 'amountToPay',
-      header: 'Phải đóng',
-      align: 'end',
-      width: proportional(1, { minWidth: 100 }),
-      renderCell: (p: HuiPeriodPayment) => (
-        <Text weight="semibold" hasTabularNumbers>{formatCurrency(p.amountToPay)}</Text>
-      ),
-    }] as TableColumn<HuiPeriodPayment>[]),
-    {
-      key: 'status',
-      header: 'Trạng thái',
-      align: 'end',
-      width: pixel(isCompact ? 156 : 132),
-      renderCell: (p) =>
-        p.isPaid ? (
-          <HStack gap={1} vAlign="center" hAlign="end" wrap="nowrap">
-            <Badge label="Đã đóng" variant="green" />
-            <IconButton
-              label={`Hoàn tác đã đóng của ${p.memberName}`}
-              tooltip="Hoàn tác"
-              icon={<Icon icon={RotateCcw} />}
-              size={rowCtl}
-              variant="ghost"
-              onClick={() => handleTogglePayment(activeIdx, p.slotId)}
-            />
-          </HStack>
-        ) : (
-          <Button
-            label="Đã thu"
-            variant="primary"
-            size={rowCtl}
-            icon={<Icon icon={CheckIcon} />}
-            onClick={() => handleTogglePayment(activeIdx, p.slotId)}
-          />
-        ),
-    },
-  ];
-
   // Bảng thành viên
   const n = currentHui.totalSlots;
   const slotColumns: TableColumn<SlotStatistic>[] = [
@@ -735,21 +681,47 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
     : undefined;
   const activeWinnerQr = activePeriod?.winnerQrCode || activeWinnerSlot?.qrCodeUrl;
 
-  const kpis = [
-    { label: 'Tiền góp mỗi chân', value: formatCurrency(currentHui.amountPerSlot), hint: `Lãi tăng ${formatCurrency(step)}/kỳ` },
-    { label: 'Số chân', value: `${n} chân`, hint: `${CYCLE_LABELS[currentHui.cycle]} · từ tháng ${currentHui.startMonth || 4}` },
-    { label: 'Đã khui', value: `${periods.length}/${n} kỳ`, progress: true },
-    { label: 'Chân sống', value: `${livingSlots.length} chân`, hint: livingSlots.length > 0 ? 'Chưa lụm' : 'Dây đã mãn' },
+  // Thứ tự lụm: các kỳ đã khui theo thực tế, các chân còn sống xếp tiếp theo số chân
+  const startMonth = currentHui.startMonth || 4;
+  const basePot = Math.max(0, (n - 1) * currentHui.amountPerSlot);
+  const monthOf = (k: number) => ((startMonth - 1 + k - 1) % 12) + 1;
+  const turnOrder = [
+    ...periods.map((p, idx) => ({
+      key: `period_${p.periodNumber}`,
+      k: p.periodNumber,
+      name: p.winnerName,
+      amount: p.actualReceived,
+      state: idx === latestIdx && !p.isCompleted ? ('current' as const) : ('done' as const),
+    })),
+    ...livingSlots.map((s, i) => {
+      const k = periods.length + i + 1;
+      return {
+        key: s.id,
+        k,
+        name: s.memberName,
+        amount: basePot + (((k - 1) * k) / 2) * step,
+        state: 'upcoming' as const,
+      };
+    }),
   ];
+  const totalValue = turnOrder.reduce((sum, t) => sum + t.amount, 0);
+  const collectedAll = periods.reduce(
+    (sum, p) => sum + p.payments.filter((x) => x.isPaid).reduce((a, x) => a + x.amountToPay, 0),
+    0
+  );
+  const unpaidActiveAmount = activePeriod
+    ? activePeriod.payments.filter((p) => !p.isPaid).reduce((a, p) => a + p.amountToPay, 0)
+    : 0;
 
   return (
     <VStack gap={isCompact ? 4 : 6}>
-      {/* Thanh chọn dây hụi và thao tác */}
-      <Card>
-        <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
-          <StackItem size={isCompact ? 'fill' : 'static'}>
+      {/* Chọn dây hụi và thao tác */}
+      <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
+        <StackItem size={isCompact ? 'fill' : 'static'}>
+          <VStack gap={1}>
             <Selector
-              label="Dây hụi"
+              label="Chọn dây hụi"
+              isLabelHidden
               size={ctl}
               value={currentHui.id}
               options={huiOptions}
@@ -757,68 +729,285 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
                 setSelectedHuiId(id);
                 setViewPeriodIdx(null);
               }}
-              width={isCompact ? '100%' : 280}
+              width={isCompact ? '100%' : 320}
             />
-          </StackItem>
+            <Text type="supporting" color="secondary">
+              {n} chân · {formatCurrency(currentHui.amountPerSlot)}/chân · lãi tăng {formatCurrency(step)}/kỳ ·{' '}
+              {CYCLE_LABELS[currentHui.cycle].toLowerCase()} · từ tháng {startMonth}
+            </Text>
+          </VStack>
+        </StackItem>
 
-          <HStack gap={2} vAlign="center" wrap="nowrap">
-            {livingSlots.length > 0 ? (
-              <Button
-                label="Khui kỳ mới"
-                size={ctl}
-                variant="primary"
-                icon={<Icon icon={CalendarPlus} />}
-                onClick={() => openKhuiDialog()}
-              />
-            ) : (
-              <Badge label="Dây đã mãn" variant="neutral" />
-            )}
+        <HStack gap={2} vAlign="center" wrap="nowrap">
+          {livingSlots.length > 0 ? (
             <Button
-              label="Thêm dây"
+              label="Khui kỳ mới"
               size={ctl}
-              variant="secondary"
-              isIconOnly={isCompact}
-              icon={<Icon icon={Plus} />}
-              onClick={() => setIsCreateDialogOpen(true)}
+              variant="primary"
+              icon={<Icon icon={CalendarPlus} />}
+              onClick={() => openKhuiDialog()}
             />
-            <MoreMenu
-              label="Thao tác khác với dây hụi"
-              size={ctl}
-              variant="secondary"
-              alignment="end"
-              presentation="adaptive"
-              items={[
-                {
-                  label: 'Đổi tháng bắt đầu',
-                  icon: <Icon icon={CalendarCog} />,
-                  onClick: () => {
-                    setPendingStartMonth(currentHui.startMonth || 4);
-                    setIsStartMonthDialogOpen(true);
-                  },
+          ) : (
+            <Badge label="Dây đã mãn" variant="neutral" />
+          )}
+          <Button
+            label="Thêm dây"
+            size={ctl}
+            variant="secondary"
+            isIconOnly={isCompact}
+            icon={<Icon icon={Plus} />}
+            onClick={() => setIsCreateDialogOpen(true)}
+          />
+          <MoreMenu
+            label="Thao tác khác với dây hụi"
+            size={ctl}
+            variant="secondary"
+            alignment="end"
+            presentation="adaptive"
+            items={[
+              {
+                label: 'Đổi tháng bắt đầu',
+                icon: <Icon icon={CalendarCog} />,
+                onClick: () => {
+                  setPendingStartMonth(startMonth);
+                  setIsStartMonthDialogOpen(true);
                 },
-                { type: 'divider' },
-                {
-                  label: 'Xóa dây hụi',
-                  icon: <Icon icon={Trash2} />,
-                  variant: 'destructive',
-                  onClick: () => setIsDeleteDialogOpen(true),
-                },
-              ]}
-            />
-          </HStack>
+              },
+              { type: 'divider' },
+              {
+                label: 'Xóa dây hụi',
+                icon: <Icon icon={Trash2} />,
+                variant: 'destructive',
+                onClick: () => setIsDeleteDialogOpen(true),
+              },
+            ]}
+          />
         </HStack>
-      </Card>
+      </HStack>
 
-      {/* 4 chỉ số của dây */}
-      <Grid columns={{ minWidth: isCompact ? 150 : 200, repeat: 'fit' }} gap={isCompact ? 3 : 4}>
-        {kpis.map((k) => (
-          <Card key={k.label}>
-            <VStack gap={2}>
-              <Text type="supporting" color="secondary" maxLines={1}>{k.label}</Text>
-              <Text size={isCompact ? 'lg' : 'xl'} weight="bold" hasTabularNumbers maxLines={1}>
-                {k.value}
-              </Text>
-              {k.progress ? (
+      {/* Hai cột trên desktop, một cột trên điện thoại */}
+      <Grid columns={{ minWidth: 340, max: 2, repeat: 'fit' }} gap={isCompact ? 4 : 6}>
+        <VStack gap={isCompact ? 4 : 6}>
+          {/* Thẻ nổi bật của kỳ đang xem (Card variant="blue" = thẻ màu nhấn, cấu hình trong theme) */}
+          <Card variant="blue" padding={isCompact ? 5 : 6}>
+            {activePeriod ? (
+              <VStack gap={4}>
+                <HStack hAlign="between" vAlign="center" gap={2}>
+                  <Text type="supporting" color="secondary">
+                    Kỳ {activePeriod.periodNumber}/{n} · {formatDateVi(activePeriod.openDate)}
+                  </Text>
+                  <Badge
+                    label={activePeriod.isCompleted ? 'Đã giao tiền' : 'Đang thu'}
+                    variant={activePeriod.isCompleted ? 'green' : 'neutral'}
+                  />
+                </HStack>
+                <VStack gap={0.5}>
+                  <Text size={isCompact ? '3xl' : '4xl'} weight="bold" hasTabularNumbers>
+                    {formatCurrency(activePeriod.actualReceived)}
+                  </Text>
+                  <Text color="secondary">{activePeriod.winnerName} lụm kỳ này</Text>
+                </VStack>
+                <VStack gap={1.5}>
+                  <HStack hAlign="between" vAlign="center" gap={2}>
+                    <Text type="supporting" color="secondary">
+                      Đã thu {paidCount}/{totalCount} người
+                    </Text>
+                    <Text type="supporting" color="secondary" hasTabularNumbers>
+                      {formatCurrency(paidAmount)} / {formatCurrency(activePeriod.totalCollected)}
+                    </Text>
+                  </HStack>
+                  <ProgressBar
+                    label="Tiến độ thu tiền"
+                    isLabelHidden
+                    value={paidCount}
+                    max={totalCount || 1}
+                    variant="accent"
+                  />
+                </VStack>
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <Button
+                    label={activePeriod.isCompleted ? 'Hủy đã giao tiền' : `Giao tiền cho ${activePeriod.winnerName}`}
+                    size={ctl}
+                    variant="primary"
+                    icon={<Icon icon={CheckIcon} />}
+                    onClick={() => handleToggleWinnerPayout(activeIdx)}
+                  />
+                  <Button
+                    label={activeWinnerQr ? 'Mã QR' : 'Tải QR'}
+                    size={ctl}
+                    variant="ghost"
+                    icon={<Icon icon={activeWinnerQr ? QrCodeIcon : ArrowUpTrayIcon} />}
+                    onClick={() =>
+                      openQr(activePeriod.winnerSlotId, activePeriod.winnerName, activeWinnerQr, false)
+                    }
+                  />
+                </HStack>
+              </VStack>
+            ) : (
+              <VStack gap={3}>
+                <Text type="supporting" color="secondary">Kỳ 1/{n}</Text>
+                <Text size="2xl" weight="bold">Chưa khui kỳ nào</Text>
+                <Text color="secondary">
+                  Kỳ đầu người lụm nhận {formatCurrency(basePot)}. Bấm khui để bắt đầu điểm danh.
+                </Text>
+                <HStack>
+                  <Button
+                    label="Khui kỳ đầu tiên"
+                    size={ctl}
+                    variant="primary"
+                    icon={<Icon icon={CalendarPlus} />}
+                    onClick={() => openKhuiDialog()}
+                  />
+                </HStack>
+              </VStack>
+            )}
+          </Card>
+
+          {/* Điểm danh */}
+          {activePeriod && (
+            <Card>
+              <VStack gap={3}>
+                <HStack hAlign="between" vAlign="center" wrap="wrap" gap={2}>
+                  <Heading level={2}>Điểm danh kỳ {activePeriod.periodNumber}</Heading>
+                  <HStack gap={2} vAlign="center" wrap="nowrap">
+                    {periods.length > 1 && (
+                      <Selector
+                        label="Xem kỳ"
+                        isLabelHidden
+                        size={ctl}
+                        value={String(activeIdx)}
+                        options={periodOptions}
+                        onChange={(v) => setViewPeriodIdx(parseInt(v, 10))}
+                        width={isCompact ? 160 : 200}
+                      />
+                    )}
+                    <MoreMenu
+                      label="Thao tác với kỳ này"
+                      size={ctl}
+                      alignment="end"
+                      presentation="adaptive"
+                      items={[
+                        {
+                          label: activeWinnerQr ? `Đổi QR của ${activePeriod.winnerName}` : 'Tải QR người lụm',
+                          icon: <Icon icon={ArrowUpTrayIcon} />,
+                          onClick: () =>
+                            openQr(activePeriod.winnerSlotId, activePeriod.winnerName, activeWinnerQr, true),
+                        },
+                        ...(isViewingLatest
+                          ? [
+                              { type: 'divider' as const },
+                              {
+                                label: 'Hoàn tác kỳ này',
+                                icon: <Icon icon={RotateCcw} />,
+                                variant: 'destructive' as const,
+                                onClick: () => setIsRevertConfirmOpen(true),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  </HStack>
+                </HStack>
+                <List hasDividers edge="bleed">
+                  {activePeriod.payments.map((p) => {
+                    const extra = p.amountToPay - currentHui.amountPerSlot;
+                    return (
+                      <ListItem
+                        key={p.slotId}
+                        startContent={<Avatar name={p.memberName} size="md" tooltip={false} />}
+                        label={p.memberName}
+                        description={
+                          <Text type="supporting" color="secondary">
+                            Chân #{p.slotNumber} · {extra > 0 ? `gốc + bù ${formatCurrency(extra)}` : 'gốc'}
+                          </Text>
+                        }
+                        endContent={
+                          <VStack gap={1} hAlign="end">
+                            <Text weight="semibold" hasTabularNumbers>
+                              {formatCurrency(p.amountToPay)}
+                            </Text>
+                            {p.isPaid ? (
+                              <HStack gap={1} vAlign="center" wrap="nowrap">
+                                <Badge label="Đã đóng" variant="green" />
+                                <IconButton
+                                  label={`Hoàn tác đã đóng của ${p.memberName}`}
+                                  tooltip="Hoàn tác"
+                                  icon={<Icon icon={RotateCcw} />}
+                                  size={rowCtl}
+                                  variant="ghost"
+                                  onClick={() => handleTogglePayment(activeIdx, p.slotId)}
+                                />
+                              </HStack>
+                            ) : (
+                              <Button
+                                label="Đã thu"
+                                variant="primary"
+                                size={rowCtl}
+                                icon={<Icon icon={CheckIcon} />}
+                                onClick={() => handleTogglePayment(activeIdx, p.slotId)}
+                              />
+                            )}
+                          </VStack>
+                        }
+                      />
+                    );
+                  })}
+                </List>
+              </VStack>
+            </Card>
+          )}
+        </VStack>
+
+        <VStack gap={isCompact ? 4 : 6}>
+          {/* Thứ tự lụm */}
+          <Card>
+            <VStack gap={3}>
+              <Heading level={2}>Thứ tự lụm</Heading>
+              <List hasDividers edge="bleed">
+                {turnOrder.map((t) => (
+                  <ListItem
+                    key={t.key}
+                    startContent={<Avatar name={t.name} size="md" tooltip={false} />}
+                    label={`Kỳ ${t.k} · ${t.name}`}
+                    description={
+                      <Text type="supporting" color="secondary">
+                        Tháng {monthOf(t.k)}
+                        {t.state === 'upcoming' ? ' · dự kiến' : ''}
+                      </Text>
+                    }
+                    endContent={
+                      <VStack gap={1} hAlign="end">
+                        <Text
+                          weight={t.state === 'current' ? 'bold' : 'semibold'}
+                          color={t.state === 'upcoming' ? 'secondary' : 'primary'}
+                          hasTabularNumbers
+                        >
+                          {formatCurrency(t.amount)}
+                        </Text>
+                        {t.state === 'current' && <Badge label="Đang thu" variant="blue" />}
+                        {t.state === 'done' && <Badge label="Đã lụm" variant="green" />}
+                      </VStack>
+                    }
+                  />
+                ))}
+              </List>
+            </VStack>
+          </Card>
+
+          {/* Số tổng của dây */}
+          <Card>
+            <Grid columns={2} gap={4}>
+              <VStack gap={1}>
+                <Text type="supporting" color="secondary">Tổng giá trị dây</Text>
+                <Text size="lg" weight="bold" hasTabularNumbers>{formatCurrency(totalValue)}</Text>
+              </VStack>
+              <VStack gap={1}>
+                <Text type="supporting" color="secondary">Đã thu cả dây</Text>
+                <Text size="lg" weight="bold" hasTabularNumbers>{formatCurrency(collectedAll)}</Text>
+              </VStack>
+              <VStack gap={1}>
+                <Text type="supporting" color="secondary">Đã khui</Text>
+                <Text size="lg" weight="bold" hasTabularNumbers>{periods.length}/{n} kỳ</Text>
                 <ProgressBar
                   label="Tiến độ khui hụi"
                   isLabelHidden
@@ -826,113 +1015,24 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
                   max={n || 1}
                   variant={periods.length === n ? 'success' : 'accent'}
                 />
-              ) : (
-                <Text type="supporting" color="secondary">{k.hint}</Text>
-              )}
-            </VStack>
-          </Card>
-        ))}
-      </Grid>
-
-      {/* Điểm danh thu tiền */}
-      {activePeriod && (
-        <Card>
-          <VStack gap={4}>
-            <HStack hAlign="between" vAlign="start" wrap="wrap" gap={3}>
-              <VStack gap={1.5}>
-                <HStack gap={2} vAlign="center" wrap="wrap">
-                  <Heading level={2}>Điểm danh kỳ {activePeriod.periodNumber}</Heading>
-                  {activePeriod.isCompleted ? (
-                    <Badge label="Đã giao tiền" variant="green" />
-                  ) : (
-                    <Badge label="Chờ giao tiền" variant="orange" />
-                  )}
-                </HStack>
-                <Text type="supporting" color="secondary">
-                  {formatDateVi(activePeriod.openDate)} · {activePeriod.winnerName} lụm{' '}
-                  <Text type="supporting" weight="semibold" hasTabularNumbers>
-                    {formatCurrency(activePeriod.actualReceived)}
-                  </Text>
+              </VStack>
+              <VStack gap={1}>
+                <Text type="supporting" color="secondary">Còn nợ kỳ đang xem</Text>
+                <Text size="lg" weight="bold" hasTabularNumbers>
+                  {activePeriod ? formatCurrency(unpaidActiveAmount) : '—'}
                 </Text>
               </VStack>
-
-              {periods.length > 1 && (
-                <Selector
-                  label="Xem kỳ"
-                  size={ctl}
-                  isLabelHidden
-                  value={String(activeIdx)}
-                  options={periodOptions}
-                  onChange={(v) => setViewPeriodIdx(parseInt(v, 10))}
-                  width={isCompact ? '100%' : 220}
-                />
-              )}
-            </HStack>
-
-            <VStack gap={1.5}>
-              <HStack hAlign="between" vAlign="center" gap={2}>
-                <Text type="supporting">
-                  Đã thu {paidCount}/{totalCount} người
-                </Text>
-                <Text type="supporting" hasTabularNumbers>
-                  {formatCurrency(paidAmount)} / {formatCurrency(activePeriod.totalCollected)}
-                </Text>
-              </HStack>
-              <ProgressBar
-                label="Tiến độ thu tiền"
-                isLabelHidden
-                value={paidCount}
-                max={totalCount || 1}
-                variant={paidCount === totalCount ? 'success' : 'accent'}
-              />
-            </VStack>
-
-            <Table<HuiPeriodPayment>
-              data={activePeriod.payments}
-              columns={paymentColumns}
-              idKey="slotId"
-              density="compact"
-              dividers="rows"
-              hasHover
-            />
-
-            <HStack gap={2} vAlign="center" wrap="wrap" hAlign="end">
-              {isViewingLatest && (
-                <Button
-                  label="Hoàn tác kỳ này"
-                  size={ctl}
-                  variant="ghost"
-                  icon={<Icon icon={RotateCcw} />}
-                  onClick={() => setIsRevertConfirmOpen(true)}
-                />
-              )}
-              <Button
-                label={activeWinnerQr ? `QR của ${activePeriod.winnerName}` : 'Tải QR người lụm'}
-                size={ctl}
-                variant="secondary"
-                icon={<Icon icon={activeWinnerQr ? QrCodeIcon : ArrowUpTrayIcon} />}
-                onClick={() =>
-                  openQr(activePeriod.winnerSlotId, activePeriod.winnerName, activeWinnerQr, false)
-                }
-              />
-              <Button
-                label={activePeriod.isCompleted ? 'Hủy đã giao tiền' : 'Xác nhận đã giao tiền'}
-                size={ctl}
-                variant={activePeriod.isCompleted ? 'secondary' : 'primary'}
-                icon={<Icon icon={CheckIcon} />}
-                onClick={() => handleToggleWinnerPayout(activeIdx)}
-              />
-            </HStack>
-          </VStack>
-        </Card>
-      )}
+            </Grid>
+          </Card>
+        </VStack>
+      </Grid>
 
       {/* Ma trận lũy tiến */}
       {huiMatrix && (
         <HuiMatrixTable
           matrix={huiMatrix}
           title="Ma trận đóng hụi"
-          subtitle={`Dự kiến theo thứ tự lụm, bắt đầu tháng ${currentHui.startMonth || 4}`}
+          subtitle={`Dự kiến theo thứ tự lụm, bắt đầu tháng ${startMonth}`}
         />
       )}
 

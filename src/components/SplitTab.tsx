@@ -555,7 +555,7 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
       key: 'net',
       header: 'Chênh lệch',
       align: 'end',
-      width: proportional(1, { minWidth: 150 }),
+      width: proportional(1, { minWidth: 184 }),
       renderCell: (b) =>
         b.net > 0 ? (
           <Badge label={`Nhận lại ${formatCurrency(b.net)}`} variant="green" />
@@ -570,64 +570,62 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
   return (
     <VStack gap={isCompact ? 4 : 6}>
       {/* Chọn chuyến và thao tác */}
-      <Card>
-        <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
-          <StackItem size={isCompact ? 'fill' : 'static'}>
-            <Selector
-              label="Chuyến đi"
-              size={ctl}
-              value={current.id}
-              options={eventOptions}
-              onChange={setSelectedId}
-              width={isCompact ? '100%' : 280}
-            />
-          </StackItem>
-          <HStack gap={2} vAlign="center" wrap="nowrap">
-            <Button
-              label="Thêm khoản chi"
-              size={ctl}
-              variant="primary"
-              icon={<Icon icon={Plus} />}
-              onClick={openAddExpense}
-            />
-            <Button
-              label="Chuyến mới"
-              size={ctl}
-              variant="secondary"
-              isIconOnly={isCompact}
-              icon={<Icon icon={Receipt} />}
-              onClick={openCreateEvent}
-            />
-            <MoreMenu
-              label="Thao tác khác với chuyến đi"
-              size={ctl}
-              variant="secondary"
-              alignment="end"
-              presentation="adaptive"
-              items={[
-                {
-                  label: 'Sửa tên, ngày, thành viên',
-                  icon: <Icon icon={UsersRound} />,
-                  onClick: openEditEvent,
-                },
-                { type: 'divider' },
-                {
-                  label: 'Xóa chuyến đi',
-                  icon: <Icon icon={Trash2} />,
-                  variant: 'destructive',
-                  onClick: () => setIsDeleteEventOpen(true),
-                },
-              ]}
-            />
-          </HStack>
+      <HStack hAlign="between" vAlign="end" wrap="wrap" gap={3}>
+        <StackItem size={isCompact ? 'fill' : 'static'}>
+          <Selector
+            label="Chuyến đi"
+            size={ctl}
+            value={current.id}
+            options={eventOptions}
+            onChange={setSelectedId}
+            width={isCompact ? '100%' : 280}
+          />
+        </StackItem>
+        <HStack gap={2} vAlign="center" wrap="nowrap">
+          <Button
+            label="Thêm khoản chi"
+            size={ctl}
+            variant="primary"
+            icon={<Icon icon={Plus} />}
+            onClick={openAddExpense}
+          />
+          <Button
+            label="Chuyến mới"
+            size={ctl}
+            variant="secondary"
+            isIconOnly={isCompact}
+            icon={<Icon icon={Receipt} />}
+            onClick={openCreateEvent}
+          />
+          <MoreMenu
+            label="Thao tác khác với chuyến đi"
+            size={ctl}
+            variant="secondary"
+            alignment="end"
+            presentation="adaptive"
+            items={[
+              {
+                label: 'Sửa tên, ngày, thành viên',
+                icon: <Icon icon={UsersRound} />,
+                onClick: openEditEvent,
+              },
+              { type: 'divider' },
+              {
+                label: 'Xóa chuyến đi',
+                icon: <Icon icon={Trash2} />,
+                variant: 'destructive',
+                onClick: () => setIsDeleteEventOpen(true),
+              },
+            ]}
+          />
         </HStack>
-      </Card>
+      </HStack>
 
       {/* Chỉ số */}
       <Grid columns={isCompact ? 2 : 3} gap={isCompact ? 3 : 4}>
         {kpis.map((k, idx) => (
           <GridSpan key={k.label} columns={isCompact && idx === kpis.length - 1 ? 'full' : 1}>
-          <Card>
+          <Card variant={idx === 0 ? 'blue' : 'default'}>
             <VStack gap={2}>
               <Text type="supporting" color="secondary" maxLines={1}>
                 {k.label}

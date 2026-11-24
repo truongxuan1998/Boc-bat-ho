@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import '@astryxdesign/core/reset.css';
 import '@astryxdesign/core/astryx.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
-import '@fontsource/inter/700.css';
+import '@fontsource/be-vietnam-pro/500.css';
+import '@fontsource/be-vietnam-pro/600.css';
+import '@fontsource/be-vietnam-pro/700.css';
 import { AstryxProvider } from '@/components/AstryxProvider';
 import { VisitTracker } from '@/components/VisitTracker';
 

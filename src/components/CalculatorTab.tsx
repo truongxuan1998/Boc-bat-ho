@@ -93,7 +93,7 @@ export function CalculatorTab() {
             {summary.map((s) => (
               <Card key={s.label} variant="muted">
                 <VStack gap={1}>
-                  <Text type="supporting" color="secondary" maxLines={1}>
+                  <Text type="supporting" color="secondary">
                     {s.label}
                   </Text>
                   <Text size={isCompact ? 'lg' : 'xl'} weight="bold" hasTabularNumbers maxLines={1}>

@@ -16,7 +16,8 @@ import { DateInput } from '@astryxdesign/core/DateInput';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Selector } from '@astryxdesign/core/Selector';
 import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
-import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormDialog } from '@/components/FormDialog';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { ProgressBar } from '@astryxdesign/core/ProgressBar';
@@ -356,39 +357,15 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
 
   // ---------- Dialog quỹ (dùng cả khi chưa có quỹ nào) ----------
   const fundDialog = (
-    <Dialog isOpen={isFundDialogOpen} onOpenChange={setIsFundDialogOpen} width={560} purpose="form">
-      <DialogHeader
-        title={editingFundId ? 'Sửa quỹ' : 'Quỹ mới'}
-        subtitle="Quỹ hội bạn, quỹ lớp, quỹ phòng: góp định kỳ và chi chung"
-        onOpenChange={setIsFundDialogOpen}
-      />
-      <VStack gap={4} padding={4}>
-        <TextInput
-          label="Tên quỹ"
-          value={fundName}
-          onChange={setFundName}
-          placeholder="Ví dụ: Quỹ hội bạn thân"
-          width="100%"
+    <FormDialog isOpen={isFundDialogOpen} onOpenChange={setIsFundDialogOpen} width={560} purpose="form"
+      header={
+        <DialogHeader
+          title={editingFundId ? 'Sửa quỹ' : 'Quỹ mới'}
+          subtitle="Quỹ hội bạn, quỹ lớp, quỹ phòng: góp định kỳ và chi chung"
+          onOpenChange={setIsFundDialogOpen}
         />
-        <MemberOrderEditor
-          members={fundMembers}
-          onChange={setFundMembers}
-          minMembers={editingFundId ? 2 : 0}
-          title="Thành viên"
-          description="Nhập tên rồi nhấn Enter, nhiều tên cách nhau bằng dấu phẩy."
-          isOrdered={false}
-          allowDuplicates={false}
-        />
-        <Selector
-          label="Thủ quỹ"
-          value={fundMembers.includes(fundTreasurer) ? fundTreasurer : ''}
-          options={[
-            { value: '', label: 'Chưa chọn' },
-            ...fundMembers.map((m) => ({ value: m, label: m })),
-          ]}
-          onChange={setFundTreasurer}
-          width="100%"
-        />
+      }
+      footer={
         <HStack hAlign="end" gap={2}>
           <Button label="Hủy" variant="ghost" onClick={() => setIsFundDialogOpen(false)} />
           <Button
@@ -398,8 +375,35 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
             onClick={saveFund}
           />
         </HStack>
-      </VStack>
-    </Dialog>
+      }
+    >
+      <TextInput
+        label="Tên quỹ"
+        value={fundName}
+        onChange={setFundName}
+        placeholder="Ví dụ: Quỹ hội bạn thân"
+        width="100%"
+      />
+      <MemberOrderEditor
+        members={fundMembers}
+        onChange={setFundMembers}
+        minMembers={editingFundId ? 2 : 0}
+        title="Thành viên"
+        description="Nhập tên rồi nhấn Enter, nhiều tên cách nhau bằng dấu phẩy."
+        isOrdered={false}
+        allowDuplicates={false}
+      />
+      <Selector
+        label="Thủ quỹ"
+        value={fundMembers.includes(fundTreasurer) ? fundTreasurer : ''}
+        options={[
+          { value: '', label: 'Chưa chọn' },
+          ...fundMembers.map((m) => ({ value: m, label: m })),
+        ]}
+        onChange={setFundTreasurer}
+        width="100%"
+      />
+    </FormDialog>
   );
 
   if (!current || !summary) {
@@ -832,95 +836,101 @@ export function FundTab({ funds, onUpdateFunds }: FundTabProps) {
       {fundDialog}
 
       {/* DIALOG ĐỢT THU */}
-      <Dialog isOpen={isRoundDialogOpen} onOpenChange={setIsRoundDialogOpen} width={520} purpose="form">
-        <DialogHeader
-          title={editingRoundId ? 'Sửa đợt thu' : 'Mở đợt thu'}
-          subtitle={current.name}
-          onOpenChange={setIsRoundDialogOpen}
-        />
-        <VStack gap={4} padding={4}>
-          <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
-            <TextInput
-              label="Tên đợt"
-              value={roundTitle}
-              onChange={setRoundTitle}
-              placeholder="Ví dụ: Tháng 12/2026"
-              width="100%"
-            />
-            <DateInput
-              label="Ngày mở"
-              value={(roundDate as ISODateString) || undefined}
-              onChange={(v) => v && setRoundDate(v)}
-              presentation="popover"
-              width="100%"
-            />
-          </Grid>
-          <MoneyInput label="Mỗi người góp" value={roundAmount} onChange={setRoundAmount} placeholder="200.000" />
-          <CheckboxList
-            label="Ai góp đợt này"
-            description={
-              roundAmount > 0 && roundParticipants.length > 0
-                ? `Tổng thu dự kiến ${formatCurrency(roundAmount * roundParticipants.length)}`
-                : undefined
-            }
-            value={roundParticipants}
-            onChange={setRoundParticipants}
-            density="compact"
-          >
-            {current.members.map((m) => (
-              <CheckboxListItem key={m} value={m} label={m} />
-            ))}
-          </CheckboxList>
+      <FormDialog isOpen={isRoundDialogOpen} onOpenChange={setIsRoundDialogOpen} width={520} purpose="form"
+        header={
+          <DialogHeader
+            title={editingRoundId ? 'Sửa đợt thu' : 'Mở đợt thu'}
+            subtitle={current.name}
+            onOpenChange={setIsRoundDialogOpen}
+          />
+        }
+        footer={
           <HStack hAlign="end" gap={2}>
             <Button label="Hủy" variant="ghost" onClick={() => setIsRoundDialogOpen(false)} />
             <Button label={editingRoundId ? 'Lưu' : 'Mở đợt thu'} variant="primary" onClick={saveRound} />
           </HStack>
-        </VStack>
-      </Dialog>
+        }
+      >
+        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+          <TextInput
+            label="Tên đợt"
+            value={roundTitle}
+            onChange={setRoundTitle}
+            placeholder="Ví dụ: Tháng 12/2026"
+            width="100%"
+          />
+          <DateInput
+            label="Ngày mở"
+            value={(roundDate as ISODateString) || undefined}
+            onChange={(v) => v && setRoundDate(v)}
+            presentation="popover"
+            width="100%"
+          />
+        </Grid>
+        <MoneyInput label="Mỗi người góp" value={roundAmount} onChange={setRoundAmount} placeholder="200.000" />
+        <CheckboxList
+          label="Ai góp đợt này"
+          description={
+            roundAmount > 0 && roundParticipants.length > 0
+              ? `Tổng thu dự kiến ${formatCurrency(roundAmount * roundParticipants.length)}`
+              : undefined
+          }
+          value={roundParticipants}
+          onChange={setRoundParticipants}
+          density="compact"
+        >
+          {current.members.map((m) => (
+            <CheckboxListItem key={m} value={m} label={m} />
+          ))}
+        </CheckboxList>
+      </FormDialog>
 
       {/* DIALOG KHOẢN CHI */}
-      <Dialog isOpen={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen} width={480} purpose="form">
-        <DialogHeader
-          title={editingExpenseId ? 'Sửa khoản chi' : 'Ghi khoản chi từ quỹ'}
-          subtitle={`${current.name} · số dư ${formatCurrency(summary.balance)}`}
-          onOpenChange={setIsExpenseDialogOpen}
-        />
-        <VStack gap={4} padding={4}>
-          <TextInput
-            label="Nội dung"
-            value={expTitle}
-            onChange={setExpTitle}
-            placeholder="Ví dụ: Sinh nhật Trung, tiền nước"
-            width="100%"
+      <FormDialog isOpen={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen} width={480} purpose="form"
+        header={
+          <DialogHeader
+            title={editingExpenseId ? 'Sửa khoản chi' : 'Ghi khoản chi từ quỹ'}
+            subtitle={`${current.name} · số dư ${formatCurrency(summary.balance)}`}
+            onOpenChange={setIsExpenseDialogOpen}
           />
-          <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
-            <MoneyInput label="Số tiền" value={expAmount} onChange={setExpAmount} placeholder="500.000" />
-            <DateInput
-              label="Ngày chi"
-              value={(expDate as ISODateString) || undefined}
-              onChange={(v) => v && setExpDate(v)}
-              presentation="popover"
-              width="100%"
-            />
-          </Grid>
-          <Selector
-            label="Người chi"
-            value={expSpentBy}
-            options={[{ value: '', label: 'Không ghi' }, ...current.members.map((m) => ({ value: m, label: m }))]}
-            onChange={setExpSpentBy}
-            width="100%"
-          />
-          {!editingExpenseId && expAmount > summary.balance && (
-            <Text type="supporting" weight="semibold">
-              Khoản này lớn hơn số dư hiện tại, quỹ sẽ bị âm {formatCurrency(expAmount - summary.balance)}.
-            </Text>
-          )}
+        }
+        footer={
           <HStack hAlign="end" gap={2}>
             <Button label="Hủy" variant="ghost" onClick={() => setIsExpenseDialogOpen(false)} />
             <Button label={editingExpenseId ? 'Lưu' : 'Ghi khoản chi'} variant="primary" onClick={saveExpense} />
           </HStack>
-        </VStack>
-      </Dialog>
+        }
+      >
+        <TextInput
+          label="Nội dung"
+          value={expTitle}
+          onChange={setExpTitle}
+          placeholder="Ví dụ: Sinh nhật Trung, tiền nước"
+          width="100%"
+        />
+        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+          <MoneyInput label="Số tiền" value={expAmount} onChange={setExpAmount} placeholder="500.000" />
+          <DateInput
+            label="Ngày chi"
+            value={(expDate as ISODateString) || undefined}
+            onChange={(v) => v && setExpDate(v)}
+            presentation="popover"
+            width="100%"
+          />
+        </Grid>
+        <Selector
+          label="Người chi"
+          value={expSpentBy}
+          options={[{ value: '', label: 'Không ghi' }, ...current.members.map((m) => ({ value: m, label: m }))]}
+          onChange={setExpSpentBy}
+          width="100%"
+        />
+        {!editingExpenseId && expAmount > summary.balance && (
+          <Text type="supporting" weight="semibold">
+            Khoản này lớn hơn số dư hiện tại, quỹ sẽ bị âm {formatCurrency(expAmount - summary.balance)}.
+          </Text>
+        )}
+      </FormDialog>
 
       <AlertDialog
         isOpen={deleteRoundId !== null}

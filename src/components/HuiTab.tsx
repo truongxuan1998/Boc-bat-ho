@@ -17,7 +17,8 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { DateInput } from '@astryxdesign/core/DateInput';
 import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Selector } from '@astryxdesign/core/Selector';
-import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormDialog } from '@/components/FormDialog';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { useToast } from '@astryxdesign/core/Toast';
@@ -235,72 +236,75 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
   };
 
   const renderCreateDialog = () => (
-    <Dialog isOpen={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} width={640} purpose="form">
-      <DialogHeader
-        title="Tạo dây hụi mới"
-        subtitle="Hụi lũy tiến: mỗi kỳ sau người lụm nhận thêm một bậc lãi"
-        onOpenChange={setIsCreateDialogOpen}
-      />
-      <VStack gap={4} padding={4}>
-        <TextInput
-          label="Tên dây hụi"
-          value={newHuiName}
-          onChange={setNewHuiName}
-          placeholder="Ví dụ: Dây 3 triệu nhóm bạn thân"
-          width="100%"
+    <FormDialog isOpen={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} width={640} purpose="form"
+      header={
+        <DialogHeader
+          title="Tạo dây hụi mới"
+          subtitle="Hụi lũy tiến: mỗi kỳ sau người lụm nhận thêm một bậc lãi"
+          onOpenChange={setIsCreateDialogOpen}
         />
-
-        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
-          <MoneyInput label="Tiền góp mỗi chân" value={newHuiAmount} onChange={setNewHuiAmount} placeholder="3.000.000" />
-          <MoneyInput label="Lãi tăng mỗi kỳ" value={newHuiStep} onChange={setNewHuiStep} placeholder="30.000" />
-        </Grid>
-
-        <MemberOrderEditor members={newHuiMembers} onChange={setNewHuiMembers} minMembers={0} />
-
-        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
-          <Selector
-            label="Tháng bắt đầu"
-            value={String(newHuiStartMonth)}
-            options={MONTH_OPTIONS}
-            onChange={(val) => setNewHuiStartMonth(parseInt(val, 10))}
-            width="100%"
-          />
-          <Selector
-            label="Chu kỳ khui"
-            value={newHuiCycle}
-            options={[
-              { value: 'MONTHLY', label: 'Hàng tháng' },
-              { value: 'WEEKLY', label: 'Hàng tuần' },
-              { value: 'DAILY', label: 'Hàng ngày' },
-            ]}
-            onChange={(v) => setNewHuiCycle(v as HuiGroup['cycle'])}
-            width="100%"
-          />
-        </Grid>
-
-        <Card variant="muted" padding={3}>
-          <Grid columns={{ minWidth: 150, repeat: 'fit' }} gap={3}>
-            <VStack gap={0.5}>
-              <Text type="supporting" color="secondary">Số kỳ</Text>
-              <Text weight="bold" hasTabularNumbers>{createSummary.totalSlots} kỳ</Text>
-            </VStack>
-            <VStack gap={0.5}>
-              <Text type="supporting" color="secondary">Lụm gốc mỗi kỳ</Text>
-              <Text weight="bold" hasTabularNumbers>{formatCurrency(createSummary.basePot)}</Text>
-            </VStack>
-            <VStack gap={0.5}>
-              <Text type="supporting" color="secondary">Kỳ chót nhận</Text>
-              <Text weight="bold" hasTabularNumbers>{formatCurrency(createSummary.lastTotalReceived)}</Text>
-            </VStack>
-          </Grid>
-        </Card>
-
+      }
+      footer={
         <HStack hAlign="end" gap={2}>
           <Button label="Hủy" variant="ghost" onClick={() => setIsCreateDialogOpen(false)} />
           <Button label="Tạo dây hụi" variant="primary" icon={<Icon icon={Plus} />} onClick={handleCreateHuiGroup} />
         </HStack>
-      </VStack>
-    </Dialog>
+      }
+    >
+      <TextInput
+        label="Tên dây hụi"
+        value={newHuiName}
+        onChange={setNewHuiName}
+        placeholder="Ví dụ: Dây 3 triệu nhóm bạn thân"
+        width="100%"
+      />
+
+      <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+        <MoneyInput label="Tiền góp mỗi chân" value={newHuiAmount} onChange={setNewHuiAmount} placeholder="3.000.000" />
+        <MoneyInput label="Lãi tăng mỗi kỳ" value={newHuiStep} onChange={setNewHuiStep} placeholder="30.000" />
+      </Grid>
+
+      <MemberOrderEditor members={newHuiMembers} onChange={setNewHuiMembers} minMembers={0} />
+
+      <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+        <Selector
+          label="Tháng bắt đầu"
+          value={String(newHuiStartMonth)}
+          options={MONTH_OPTIONS}
+          onChange={(val) => setNewHuiStartMonth(parseInt(val, 10))}
+          width="100%"
+        />
+        <Selector
+          label="Chu kỳ khui"
+          value={newHuiCycle}
+          options={[
+            { value: 'MONTHLY', label: 'Hàng tháng' },
+            { value: 'WEEKLY', label: 'Hàng tuần' },
+            { value: 'DAILY', label: 'Hàng ngày' },
+          ]}
+          onChange={(v) => setNewHuiCycle(v as HuiGroup['cycle'])}
+          width="100%"
+        />
+      </Grid>
+
+      <Card variant="muted" padding={3}>
+        <Grid columns={{ minWidth: 150, repeat: 'fit' }} gap={3}>
+          <VStack gap={0.5}>
+            <Text type="supporting" color="secondary">Số kỳ</Text>
+            <Text weight="bold" hasTabularNumbers>{createSummary.totalSlots} kỳ</Text>
+          </VStack>
+          <VStack gap={0.5}>
+            <Text type="supporting" color="secondary">Lụm gốc mỗi kỳ</Text>
+            <Text weight="bold" hasTabularNumbers>{formatCurrency(createSummary.basePot)}</Text>
+          </VStack>
+          <VStack gap={0.5}>
+            <Text type="supporting" color="secondary">Kỳ chót nhận</Text>
+            <Text weight="bold" hasTabularNumbers>{formatCurrency(createSummary.lastTotalReceived)}</Text>
+          </VStack>
+        </Grid>
+      </Card>
+
+    </FormDialog>
   );
 
   if (!currentHui) {
@@ -954,54 +958,15 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
       </Card>
 
       {/* DIALOG KHUI KỲ MỚI */}
-      <Dialog isOpen={isKhuiDialogOpen} onOpenChange={setIsKhuiDialogOpen} width={480} purpose="form">
-        <DialogHeader
-          title={`Khui kỳ ${periods.length + 1}/${n}`}
-          subtitle={currentHui.name}
-          onOpenChange={setIsKhuiDialogOpen}
-        />
-        <VStack gap={4} padding={4}>
-          <Selector
-            label="Người lụm kỳ này"
-            value={winnerSlotId}
-            options={winnerOptions}
-            onChange={setWinnerSlotId}
-            width="100%"
+      <FormDialog isOpen={isKhuiDialogOpen} onOpenChange={setIsKhuiDialogOpen} width={480} purpose="form"
+        header={
+          <DialogHeader
+            title={`Khui kỳ ${periods.length + 1}/${n}`}
+            subtitle={currentHui.name}
+            onOpenChange={setIsKhuiDialogOpen}
           />
-          <DateInput
-            label="Ngày khui"
-            value={(khuiDateStr as ISODateString) || undefined}
-            onChange={(val) => {
-              if (val) setKhuiDateStr(val);
-            }}
-            presentation="popover"
-            width="100%"
-          />
-          {!isProgressive && (
-            <MoneyInput
-              label="Mức thăm (tiền kêu)"
-              value={bidAmount}
-              onChange={setBidAmount}
-              description="Chân sống được trừ số này vào tiền đóng kỳ này"
-            />
-          )}
-
-          {khuiPreview && (
-            <Card variant="muted" padding={3}>
-              <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
-                <VStack gap={0.5}>
-                  <Text type="supporting" color="secondary">Người lụm nhận</Text>
-                  <Text size="xl" weight="bold" hasTabularNumbers>
-                    {formatCurrency(khuiPreview.actualReceived)}
-                  </Text>
-                </VStack>
-                <Text type="supporting" color="secondary">
-                  Từ {khuiPreview.payments.length} người đóng
-                </Text>
-              </HStack>
-            </Card>
-          )}
-
+        }
+        footer={
           <HStack hAlign="end" gap={2}>
             <Button label="Hủy" variant="ghost" onClick={() => setIsKhuiDialogOpen(false)} />
             <Button
@@ -1011,83 +976,91 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               onClick={handleConfirmKhuiHui}
             />
           </HStack>
-        </VStack>
-      </Dialog>
+        }
+      >
+        <Selector
+          label="Người lụm kỳ này"
+          value={winnerSlotId}
+          options={winnerOptions}
+          onChange={setWinnerSlotId}
+          width="100%"
+        />
+        <DateInput
+          label="Ngày khui"
+          value={(khuiDateStr as ISODateString) || undefined}
+          onChange={(val) => {
+            if (val) setKhuiDateStr(val);
+          }}
+          presentation="popover"
+          width="100%"
+        />
+        {!isProgressive && (
+          <MoneyInput
+            label="Mức thăm (tiền kêu)"
+            value={bidAmount}
+            onChange={setBidAmount}
+            description="Chân sống được trừ số này vào tiền đóng kỳ này"
+          />
+        )}
+
+        {khuiPreview && (
+          <Card variant="muted" padding={3}>
+            <HStack hAlign="between" vAlign="center" gap={3} wrap="wrap">
+              <VStack gap={0.5}>
+                <Text type="supporting" color="secondary">Người lụm nhận</Text>
+                <Text size="xl" weight="bold" hasTabularNumbers>
+                  {formatCurrency(khuiPreview.actualReceived)}
+                </Text>
+              </VStack>
+              <Text type="supporting" color="secondary">
+                Từ {khuiPreview.payments.length} người đóng
+              </Text>
+            </HStack>
+          </Card>
+        )}
+
+      </FormDialog>
 
       {renderCreateDialog()}
 
       {/* DIALOG ĐỔI THÁNG BẮT ĐẦU */}
-      <Dialog
-        isOpen={isStartMonthDialogOpen}
-        onOpenChange={setIsStartMonthDialogOpen}
-        width={420}
-        purpose="form"
-      >
-        <DialogHeader
-          title="Đổi tháng bắt đầu"
-          subtitle={currentHui.name}
-          onOpenChange={setIsStartMonthDialogOpen}
-        />
-        <VStack gap={4} padding={4}>
-          <Selector
-            label="Tháng bắt đầu"
-            value={String(pendingStartMonth)}
-            options={MONTH_OPTIONS}
-            onChange={(v) => setPendingStartMonth(parseInt(v, 10))}
-            width="100%"
+      <FormDialog isOpen={isStartMonthDialogOpen} onOpenChange={setIsStartMonthDialogOpen} width={420} purpose="form"
+        header={
+          <DialogHeader
+            title="Đổi tháng bắt đầu"
+            subtitle={currentHui.name}
+            onOpenChange={setIsStartMonthDialogOpen}
           />
-          <Text type="supporting" color="secondary">
-            Chỉ đổi nhãn tháng trong ma trận. Các kỳ đã khui và tiền đã đóng giữ nguyên.
-          </Text>
+        }
+        footer={
           <HStack hAlign="end" gap={2}>
             <Button label="Hủy" variant="ghost" onClick={() => setIsStartMonthDialogOpen(false)} />
             <Button label="Lưu" variant="primary" onClick={applyStartMonth} />
           </HStack>
-        </VStack>
-      </Dialog>
+        }
+      >
+        <Selector
+          label="Tháng bắt đầu"
+          value={String(pendingStartMonth)}
+          options={MONTH_OPTIONS}
+          onChange={(v) => setPendingStartMonth(parseInt(v, 10))}
+          width="100%"
+        />
+        <Text type="supporting" color="secondary">
+          Chỉ đổi nhãn tháng trong ma trận. Các kỳ đã khui và tiền đã đóng giữ nguyên.
+        </Text>
+      </FormDialog>
 
       {/* DIALOG MÃ QR */}
-      <Dialog isOpen={isQrModalOpen} onOpenChange={setIsQrModalOpen} width={440} purpose="form">
-        <DialogHeader
-          title={`Mã QR của ${selectedQrName}`}
-          subtitle="Quét bằng app ngân hàng hoặc MoMo để chuyển tiền"
-          onOpenChange={setIsQrModalOpen}
-        />
-        <VStack gap={4} padding={4}>
-          {isQrUploadMode ? (
-            <VStack gap={3} width="100%">
-              {qrUploadError && <Banner status="error" title={qrUploadError} />}
-              <FileInput
-                label={`Ảnh mã QR của ${selectedQrName}`}
-                description="JPG, PNG hoặc WEBP, tối đa 5MB. Ảnh được kiểm tra và làm sạch trước khi lưu."
-                mode="dropzone"
-                accept="image/png,image/jpeg,image/webp"
-                value={null}
-                isDisabled={isUploadingQr}
-                onChange={handleQrFile}
-              />
-              {isUploadingQr && (
-                <Text type="supporting" color="secondary">Đang kiểm tra và tải ảnh lên…</Text>
-              )}
-            </VStack>
-          ) : (
-            <VStack gap={3} hAlign="center">
-              <Avatar
-                src={selectedQrUrl}
-                size={180}
-                shape="rounded"
-                name={selectedQrName}
-                alt={`Mã QR ${selectedQrName}`}
-                tooltip={false}
-              />
-              <Text type="supporting" color="secondary">
-                Kiểm tra đúng tên người nhận {selectedQrName} trước khi chuyển tiền.
-              </Text>
-            </VStack>
-          )}
-
-          <Divider />
-
+      <FormDialog isOpen={isQrModalOpen} onOpenChange={setIsQrModalOpen} width={440} purpose="form"
+        header={
+          <DialogHeader
+            title={`Mã QR của ${selectedQrName}`}
+            subtitle="Quét bằng app ngân hàng hoặc MoMo để chuyển tiền"
+            onOpenChange={setIsQrModalOpen}
+          />
+        }
+        footer={
           <HStack gap={2} hAlign="between" width="100%" wrap="wrap">
             {selectedQrUrl ? (
               <Button
@@ -1114,8 +1087,43 @@ export function HuiTab({ huiGroups, onUpdateHuiGroups }: HuiTabProps) {
               <Button label="Đóng" variant="primary" onClick={() => setIsQrModalOpen(false)} />
             </HStack>
           </HStack>
-        </VStack>
-      </Dialog>
+        }
+      >
+        {isQrUploadMode ? (
+          <VStack gap={3} width="100%">
+            {qrUploadError && <Banner status="error" title={qrUploadError} />}
+            <FileInput
+              label={`Ảnh mã QR của ${selectedQrName}`}
+              description="JPG, PNG hoặc WEBP, tối đa 5MB. Ảnh được kiểm tra và làm sạch trước khi lưu."
+              mode="dropzone"
+              accept="image/png,image/jpeg,image/webp"
+              value={null}
+              isDisabled={isUploadingQr}
+              onChange={handleQrFile}
+            />
+            {isUploadingQr && (
+              <Text type="supporting" color="secondary">Đang kiểm tra và tải ảnh lên…</Text>
+            )}
+          </VStack>
+        ) : (
+          <VStack gap={3} hAlign="center">
+            <Avatar
+              src={selectedQrUrl}
+              size={180}
+              shape="rounded"
+              name={selectedQrName}
+              alt={`Mã QR ${selectedQrName}`}
+              tooltip={false}
+            />
+            <Text type="supporting" color="secondary">
+              Kiểm tra đúng tên người nhận {selectedQrName} trước khi chuyển tiền.
+            </Text>
+          </VStack>
+        )}
+
+        <Divider />
+
+      </FormDialog>
 
       {/* XÁC NHẬN XÓA DÂY */}
       <AlertDialog

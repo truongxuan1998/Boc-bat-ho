@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { VStack, HStack } from '@astryxdesign/core/Layout';
+import { HStack } from '@astryxdesign/core/Layout';
 import { Button } from '@astryxdesign/core/Button';
-import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormDialog } from '@/components/FormDialog';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { Icon } from '@astryxdesign/core/Icon';
 import {
@@ -96,23 +97,15 @@ export function ZaloExportModal({
   };
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={onOpenChange} width={560} purpose="info">
-      <DialogHeader
-        title="Gửi thông báo nhóm Zalo"
-        subtitle="Tin nhắn tạo từ kỳ khui mới nhất của từng dây, sao chép rồi dán vào nhóm"
-        onOpenChange={onOpenChange}
-      />
-      <VStack gap={4} padding={4}>
-        <TextArea
-          label="Nội dung tin nhắn"
-          isLabelHidden
-          value={messageText}
-          onChange={() => {}}
-          isReadOnly
-          rows={14}
-          width="100%"
+    <FormDialog isOpen={isOpen} onOpenChange={onOpenChange} width={560} purpose="info"
+      header={
+        <DialogHeader
+          title="Gửi thông báo nhóm Zalo"
+          subtitle="Tin nhắn tạo từ kỳ khui mới nhất của từng dây, sao chép rồi dán vào nhóm"
+          onOpenChange={onOpenChange}
         />
-
+      }
+      footer={
         <HStack hAlign="end" gap={2}>
           <Button label="Đóng" variant="ghost" onClick={() => onOpenChange(false)} />
           <Button
@@ -122,7 +115,18 @@ export function ZaloExportModal({
             onClick={handleCopy}
           />
         </HStack>
-      </VStack>
-    </Dialog>
+      }
+    >
+      <TextArea
+        label="Nội dung tin nhắn"
+        isLabelHidden
+        value={messageText}
+        onChange={() => {}}
+        isReadOnly
+        rows={14}
+        width="100%"
+      />
+
+    </FormDialog>
   );
 }

@@ -16,7 +16,8 @@ import type { ISODateString } from '@astryxdesign/core/Calendar';
 import { Selector } from '@astryxdesign/core/Selector';
 import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/SegmentedControl';
 import { CheckboxList, CheckboxListItem } from '@astryxdesign/core/CheckboxList';
-import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
+import { DialogHeader } from '@astryxdesign/core/Dialog';
+import { FormDialog } from '@/components/FormDialog';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { useToast } from '@astryxdesign/core/Toast';
@@ -292,39 +293,15 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
 
   // ---------- Dialogs dùng chung ----------
   const eventDialog = (
-    <Dialog isOpen={isEventDialogOpen} onOpenChange={setIsEventDialogOpen} width={560} purpose="form">
-      <DialogHeader
-        title={editingEventId ? 'Sửa chuyến đi' : 'Chuyến đi mới'}
-        subtitle="Một bữa ăn, một buổi đi chơi hay cả chuyến du lịch"
-        onOpenChange={setIsEventDialogOpen}
-      />
-      <VStack gap={4} padding={4}>
-        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
-          <TextInput
-            label="Tên"
-            value={eventName}
-            onChange={setEventName}
-            placeholder="Ví dụ: Đà Lạt cuối tuần"
-            width="100%"
-          />
-          <DateInput
-            label="Ngày"
-            value={(eventDate as ISODateString) || undefined}
-            onChange={(v) => v && setEventDate(v)}
-            presentation="popover"
-            width="100%"
-          />
-        </Grid>
-        <MemberOrderEditor
-          members={eventMembers}
-          onChange={setEventMembers}
-          minMembers={editingEventId ? 2 : 0}
-          title="Thành viên"
-          description="Nhập tên rồi nhấn Enter, nhiều tên cách nhau bằng dấu phẩy."
-          isOrdered={false}
-          allowDuplicates={false}
-          getRemoveBlockReason={memberRemoveBlockReason}
+    <FormDialog isOpen={isEventDialogOpen} onOpenChange={setIsEventDialogOpen} width={560} purpose="form"
+      header={
+        <DialogHeader
+          title={editingEventId ? 'Sửa chuyến đi' : 'Chuyến đi mới'}
+          subtitle="Một bữa ăn, một buổi đi chơi hay cả chuyến du lịch"
+          onOpenChange={setIsEventDialogOpen}
         />
+      }
+      footer={
         <HStack hAlign="end" gap={2}>
           <Button label="Hủy" variant="ghost" onClick={() => setIsEventDialogOpen(false)} />
           <Button
@@ -334,8 +311,35 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
             onClick={saveEvent}
           />
         </HStack>
-      </VStack>
-    </Dialog>
+      }
+    >
+      <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+        <TextInput
+          label="Tên"
+          value={eventName}
+          onChange={setEventName}
+          placeholder="Ví dụ: Đà Lạt cuối tuần"
+          width="100%"
+        />
+        <DateInput
+          label="Ngày"
+          value={(eventDate as ISODateString) || undefined}
+          onChange={(v) => v && setEventDate(v)}
+          presentation="popover"
+          width="100%"
+        />
+      </Grid>
+      <MemberOrderEditor
+        members={eventMembers}
+        onChange={setEventMembers}
+        minMembers={editingEventId ? 2 : 0}
+        title="Thành viên"
+        description="Nhập tên rồi nhấn Enter, nhiều tên cách nhau bằng dấu phẩy."
+        isOrdered={false}
+        allowDuplicates={false}
+        getRemoveBlockReason={memberRemoveBlockReason}
+      />
+    </FormDialog>
   );
 
   if (!current) {
@@ -739,82 +743,15 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
       {eventDialog}
 
       {/* DIALOG KHOẢN CHI */}
-      <Dialog
-        isOpen={isExpenseDialogOpen}
-        onOpenChange={setIsExpenseDialogOpen}
-        width={520}
-        purpose="form"
-      >
-        <DialogHeader
-          title={editingExpenseId ? 'Sửa khoản chi' : 'Thêm khoản chi'}
-          subtitle={current.name}
-          onOpenChange={setIsExpenseDialogOpen}
-        />
-        <VStack gap={4} padding={4}>
-          <TextInput
-            label="Nội dung"
-            value={expTitle}
-            onChange={setExpTitle}
-            placeholder="Ví dụ: Lẩu tối, tiền phòng, xăng xe"
-            width="100%"
+      <FormDialog isOpen={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen} width={520} purpose="form"
+        header={
+          <DialogHeader
+            title={editingExpenseId ? 'Sửa khoản chi' : 'Thêm khoản chi'}
+            subtitle={current.name}
+            onOpenChange={setIsExpenseDialogOpen}
           />
-          <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
-            <MoneyInput label="Số tiền" value={expAmount} onChange={setExpAmount} placeholder="500.000" />
-            <Selector
-              label="Người trả"
-              value={expPaidBy}
-              options={current.members.map((m) => ({ value: m, label: m }))}
-              onChange={setExpPaidBy}
-              width="100%"
-            />
-          </Grid>
-
-          <SegmentedControl label="Cách chia" value={expMode} onChange={(v) => setExpMode(v as SplitMode)} layout="fill">
-            <SegmentedControlItem value="EQUAL" label="Chia đều" />
-            <SegmentedControlItem value="CUSTOM" label="Nhập số từng người" />
-          </SegmentedControl>
-
-          <CheckboxList
-            label="Chia cho"
-            description={
-              expMode === 'EQUAL' && expParticipants.length > 0 && expAmount > 0
-                ? `Mỗi người khoảng ${formatCurrency(equalShare)}`
-                : undefined
-            }
-            value={expParticipants}
-            onChange={setExpParticipants}
-            density="compact"
-          >
-            {current.members.map((m) => (
-              <CheckboxListItem key={m} value={m} label={m} />
-            ))}
-          </CheckboxList>
-
-          {expMode === 'CUSTOM' && expParticipants.length > 0 && (
-            <Grid columns={{ minWidth: 180, repeat: 'fit' }} gap={3}>
-              {current.members
-                .filter((m) => expParticipants.includes(m))
-                .map((m) => (
-                  <MoneyInput
-                    key={m}
-                    label={`Phần của ${m}`}
-                    value={expCustom[m] || 0}
-                    onChange={(v) => setExpCustom((prev) => ({ ...prev, [m]: v }))}
-                  />
-                ))}
-            </Grid>
-          )}
-
-          {expMode === 'CUSTOM' && expAmount > 0 && (
-            <Text type="supporting" color={customLeft === 0 ? 'secondary' : 'primary'} weight="semibold">
-              {customLeft === 0
-                ? 'Đã chia đủ'
-                : customLeft > 0
-                ? `Còn ${formatCurrency(customLeft)} chưa chia`
-                : `Đang chia dư ${formatCurrency(-customLeft)}`}
-            </Text>
-          )}
-
+        }
+        footer={
           <HStack hAlign="end" gap={2}>
             <Button label="Hủy" variant="ghost" onClick={() => setIsExpenseDialogOpen(false)} />
             <Button
@@ -823,8 +760,73 @@ export function SplitTab({ events, onUpdateEvents }: SplitTabProps) {
               onClick={saveExpense}
             />
           </HStack>
-        </VStack>
-      </Dialog>
+        }
+      >
+        <TextInput
+          label="Nội dung"
+          value={expTitle}
+          onChange={setExpTitle}
+          placeholder="Ví dụ: Lẩu tối, tiền phòng, xăng xe"
+          width="100%"
+        />
+        <Grid columns={{ minWidth: 200, repeat: 'fit' }} gap={3}>
+          <MoneyInput label="Số tiền" value={expAmount} onChange={setExpAmount} placeholder="500.000" />
+          <Selector
+            label="Người trả"
+            value={expPaidBy}
+            options={current.members.map((m) => ({ value: m, label: m }))}
+            onChange={setExpPaidBy}
+            width="100%"
+          />
+        </Grid>
+
+        <SegmentedControl label="Cách chia" value={expMode} onChange={(v) => setExpMode(v as SplitMode)} layout="fill">
+          <SegmentedControlItem value="EQUAL" label="Chia đều" />
+          <SegmentedControlItem value="CUSTOM" label="Nhập số riêng" />
+        </SegmentedControl>
+
+        <CheckboxList
+          label="Chia cho"
+          description={
+            expMode === 'EQUAL' && expParticipants.length > 0 && expAmount > 0
+              ? `Mỗi người khoảng ${formatCurrency(equalShare)}`
+              : undefined
+          }
+          value={expParticipants}
+          onChange={setExpParticipants}
+          density="compact"
+        >
+          {current.members.map((m) => (
+            <CheckboxListItem key={m} value={m} label={m} />
+          ))}
+        </CheckboxList>
+
+        {expMode === 'CUSTOM' && expParticipants.length > 0 && (
+          <Grid columns={{ minWidth: 180, repeat: 'fit' }} gap={3}>
+            {current.members
+              .filter((m) => expParticipants.includes(m))
+              .map((m) => (
+                <MoneyInput
+                  key={m}
+                  label={`Phần của ${m}`}
+                  value={expCustom[m] || 0}
+                  onChange={(v) => setExpCustom((prev) => ({ ...prev, [m]: v }))}
+                />
+              ))}
+          </Grid>
+        )}
+
+        {expMode === 'CUSTOM' && expAmount > 0 && (
+          <Text type="supporting" color={customLeft === 0 ? 'secondary' : 'primary'} weight="semibold">
+            {customLeft === 0
+              ? 'Đã chia đủ'
+              : customLeft > 0
+              ? `Còn ${formatCurrency(customLeft)} chưa chia`
+              : `Đang chia dư ${formatCurrency(-customLeft)}`}
+          </Text>
+        )}
+
+      </FormDialog>
 
       <AlertDialog
         isOpen={deleteExpenseId !== null}
